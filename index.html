@@ -149,6 +149,11 @@ h2.secao{font-size:.85rem;text-transform:uppercase;letter-spacing:.06em;color:va
 .btn.sec{background:var(--card);color:var(--text);border:1px solid var(--border)}
 .btn.perigo{background:var(--danger)}
 .btn:active{transform:scale(.98)}
+.btn-maps{
+  min-height:32px;padding:2px 10px;font-size:.75rem;border-radius:8px;
+  background:var(--card);border:1px solid var(--border);color:var(--accent);
+  font-weight:700;box-shadow:var(--shadow);display:inline-flex;align-items:center;gap:4px;
+}
 
 /* ============ SOS ============ */
 .tel{
@@ -455,7 +460,7 @@ function construirCronograma(){
       for(const lista of ["atracoes","segredos","armadilhas","dicas"]){
         for(const item of c[lista]||[]){
           if(item.data && mesmaData(pd(item.data), d))
-            eventos.push({ ord:4, hr:"", ic: lista==="segredos" ? "💎" : "🎯", tx:item.texto });
+            eventos.push({ ord:4, hr:"", ic: lista==="segredos" ? "💎" : "🎯", tx:item.texto, mapsQuery:item.maps });
         }
       }
     }
@@ -499,7 +504,7 @@ function cardDia(dia, ehHoje, aberto){
       // Botão do Google Maps se houver endereço/local
       if(e.mapsQuery){
         html += '<div style="margin-top:6px;">';
-        html += '<button class="btn sec" style="min-height:32px;padding:2px 10px;font-size:.75rem;border-radius:8px;" onclick="event.stopPropagation();abrirMaps(\''+esc(e.mapsQuery)+'\')">📍 Abrir no Maps</button>';
+        html += '<button class="btn-maps" data-maps="'+esc(e.mapsQuery)+'">📍 Abrir no Maps</button>';
         html += '</div>';
       }
       
@@ -590,7 +595,8 @@ function blocoLista(titulo, ic, itens, aberto){
     + '<div class="acc-body"><ul>';
   for(const it of itens){
     html += '<li><span>'+esc(it.texto)+'</span>'
-      + (it.data ? '<span class="chip-data">'+fmtData(pd(it.data))+'</span>' : '') + '</li>';
+      + (it.data ? '<span class="chip-data">'+fmtData(pd(it.data))+'</span>' : '')
+      + (it.maps ? '<button class="btn-maps" data-maps="'+esc(it.maps)+'">📍 Maps</button>' : '') + '</li>';
   }
   return html + '</ul></div></div>';
 }
@@ -798,6 +804,7 @@ function itensDe(parent, sel){
   return [...cont.querySelectorAll("item")].map(it=>{
     const o = { texto: it.textContent.trim() };
     if(it.getAttribute("data")) o.data = it.getAttribute("data");
+    if(it.getAttribute("maps")) o.maps = it.getAttribute("maps");
     return o;
   });
 }
@@ -946,6 +953,11 @@ function mostrarView(v){
 }
 function iniciarNav(){
   document.querySelectorAll("nav.bottom button").forEach(b=>b.addEventListener("click",()=>mostrarView(b.dataset.view)));
+  // Botões 📍 Maps por delegação: sobrevivem a re-renderizações e a nomes com apóstrofo
+  document.addEventListener("click",(ev)=>{
+    const b = ev.target.closest("[data-maps]");
+    if(b){ ev.stopPropagation(); abrirMaps(b.getAttribute("data-maps")); }
+  });
 }
 
 function abrirMaps(query){
