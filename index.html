@@ -420,6 +420,15 @@ function ligarBotoesImportar(raiz){
     b.addEventListener("click",()=>document.getElementById("fileDados").click()));
 }
 
+// Um botão 📍 por local; se o item tem só maps (sem <local>), um botão único com rótulo padrão
+function botoesMaps(locais, maps, rotulo){
+  const lista = (locais && locais.length) ? locais : (maps ? [{nome:rotulo, maps:maps}] : []);
+  if(!lista.length) return "";
+  return '<div style="margin-top:6px;display:flex;flex-wrap:wrap;gap:6px;">'
+    + lista.map(l=>'<button class="btn-maps" data-maps="'+esc(l.maps)+'">📍 '+esc(l.nome)+'</button>').join("")
+    + '</div>';
+}
+
 /* ============ CRONOGRAMA (derivado dos dados) ============ */
 function cidadeDoDia(d){
   for(const h of TRIP.hospedagens||[]){
@@ -460,7 +469,7 @@ function construirCronograma(){
       for(const lista of ["atracoes","segredos","armadilhas","dicas"]){
         for(const item of c[lista]||[]){
           if(item.data && mesmaData(pd(item.data), d))
-            eventos.push({ ord:4, hr:"", ic: lista==="segredos" ? "💎" : "🎯", tx:item.texto, mapsQuery:item.maps });
+            eventos.push({ ord:4, hr:"", ic: lista==="segredos" ? "💎" : "🎯", tx:item.texto, mapsQuery:item.maps, locais:item.locais });
         }
       }
     }
@@ -502,11 +511,7 @@ function cardDia(dia, ehHoje, aberto){
       if(e.sub) html += '<div class="mini">'+esc(e.sub)+'</div>';
       
       // Botão do Google Maps se houver endereço/local
-      if(e.mapsQuery){
-        html += '<div style="margin-top:6px;">';
-        html += '<button class="btn-maps" data-maps="'+esc(e.mapsQuery)+'">📍 Abrir no Maps</button>';
-        html += '</div>';
-      }
+      html += botoesMaps(e.locais, e.mapsQuery, "Abrir no Maps");
       
       html += '</div></div>'; // fecha flex e div
       
@@ -596,7 +601,7 @@ function blocoLista(titulo, ic, itens, aberto){
   for(const it of itens){
     html += '<li><span>'+esc(it.texto)+'</span>'
       + (it.data ? '<span class="chip-data">'+fmtData(pd(it.data))+'</span>' : '')
-      + (it.maps ? '<button class="btn-maps" data-maps="'+esc(it.maps)+'">📍 Maps</button>' : '') + '</li>';
+      + botoesMaps(it.locais, it.maps, "Maps") + '</li>';
   }
   return html + '</ul></div></div>';
 }
@@ -805,6 +810,10 @@ function itensDe(parent, sel){
     const o = { texto: it.textContent.trim() };
     if(it.getAttribute("data")) o.data = it.getAttribute("data");
     if(it.getAttribute("maps")) o.maps = it.getAttribute("maps");
+    const locs = [...it.querySelectorAll("local")]
+      .map(l=>({ nome: l.getAttribute("nome")||"Maps", maps: l.getAttribute("maps")||"" }))
+      .filter(l=>l.maps);
+    if(locs.length) o.locais = locs;
     return o;
   });
 }
