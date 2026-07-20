@@ -53,7 +53,7 @@ Regras do XML:
 - **Passaportes:** preencha em cada `<membro>` os atributos `passaporte="NÚMERO"` e `validadePassaporte="AAAA-MM-DD"`. Eles aparecem no card **🛂 Passaportes** da aba SOS — com alerta automático se a validade vencer a menos de 6 meses do fim da viagem (exigência comum na imigração).
 - **Reservas:** em cada `<transporte>`, o atributo `pnr="CÓDIGO"` guarda o localizador/código de reserva (TAP, Eurostar, DB…) e `<assentos>` o vagão/assentos — ambos aparecem na gaveta "[+ info]" do cronograma e no card Transportes da aba SOS. `<mapsPartida>` (transportes) e `<mapsQuery>` (hospedagens) criam o botão "📍 Abrir no Maps"; `<aviso>` mostra alertas de horário em destaque.
 - Itens de cidade com atributo `data="AAAA-MM-DD"` aparecem também no cronograma do dia; sem o atributo, ficam só no guia da cidade.
-- **Localização das atrações:** o atributo `maps="consulta do Google Maps"` em qualquer `<item>` gera o botão "📍 Maps" no guia da cidade e, para itens com data, também no card do dia no cronograma. Para itens com **vários lugares** (ex.: "Hamleys + Lego Store + M&M's World"), use elementos filhos `<local nome="Hamleys" maps="Hamleys, Regent Street, London"/>` — cada `<local>` vira um botão próprio, com o nome no rótulo.
+- **Localização das atrações — um plano por lugar:** cada `<item>` representa **um** lugar, com sua `data` e sua busca `maps="consulta do Google Maps"`. Vários itens na mesma data viram vários planos naquele dia, cada um com o próprio botão "📍" e o próprio ✏️ de edição. (O formato legado `<local nome="..." maps="..."/>` dentro de um item ainda é aceito, mas prefira itens separados.)
 - O atributo opcional `emoji` em `<membro>` personaliza o ícone nos desafios e passaportes.
 
 ## ✍️ Editar os planos de cada dia (no próprio app)
