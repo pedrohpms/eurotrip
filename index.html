@@ -130,11 +130,15 @@ h2.secao{font-size:.85rem;text-transform:uppercase;letter-spacing:.06em;color:va
 }
 .desafio .txt{font-size:.93rem}
 .desafio.feito .txt{text-decoration:line-through;color:var(--muted)}
-.desafio .acao{
+.desafio .acao,.evento .acao{
   min-width:40px;min-height:44px;font-size:1rem;color:var(--muted);
   display:flex;align-items:center;justify-content:center;border-radius:10px;
 }
-.desafio .acao:active{background:var(--card2)}
+.desafio .acao:active,.evento .acao:active{background:var(--card2)}
+.campo{
+  min-height:44px;border-radius:12px;border:1px solid var(--border);
+  background:var(--card2);padding:0 12px;width:100%;
+}
 #formDesafio{display:flex;flex-direction:column;gap:10px}
 #formDesafio .linha{display:flex;gap:10px}
 #formDesafio select,#formDesafio input[type=text]{
@@ -197,17 +201,17 @@ nav.bottom button.ativa{color:var(--accent)}
 nav.bottom button.ativa .ic{transform:translateY(-1px)}
 
 /* ============ MODAL ============ */
-#modal{
+#modal,#modalPlano{
   position:fixed;inset:0;z-index:50;background:rgba(0,0,0,.5);
   display:none;align-items:flex-end;justify-content:center;
 }
-#modal.aberto{display:flex}
-#modal .caixa{
+#modal.aberto,#modalPlano.aberto{display:flex}
+#modal .caixa,#modalPlano .caixa{
   background:var(--card);border-radius:20px 20px 0 0;width:100%;max-width:680px;
   padding:18px 16px calc(18px + env(safe-area-inset-bottom,0px));
-  max-height:80vh;display:flex;flex-direction:column;gap:12px;
+  max-height:80vh;display:flex;flex-direction:column;gap:12px;overflow-y:auto;
 }
-#modal h3{font-size:1.05rem}
+#modal h3,#modalPlano h3{font-size:1.05rem}
 #modal textarea{
   width:100%;min-height:160px;border-radius:12px;border:1px solid var(--border);
   background:var(--card2);padding:10px;font-family:ui-monospace,monospace;font-size:.78rem;
@@ -282,6 +286,27 @@ nav.bottom button.ativa .ic{transform:translateY(-1px)}
   </div>
 </div>
 
+<div id="modalPlano" role="dialog" aria-modal="true">
+  <div class="caixa">
+    <h3 id="planoTitulo">✏️ Editar plano</h3>
+    <label class="mini" for="planoTexto">O que fazer</label>
+    <input type="text" id="planoTexto" class="campo" maxlength="200" placeholder="ex.: Piquenique no Hyde Park">
+    <label class="mini" for="planoData">Dia</label>
+    <input type="date" id="planoData" class="campo">
+    <label class="mini" for="planoMaps">Busca no Maps (📍)</label>
+    <div style="display:flex;gap:8px">
+      <input type="text" id="planoMaps" class="campo" style="flex:1" placeholder="vazio = sem botão de mapa">
+      <button class="btn sec" id="planoUsarTexto" type="button">🔎 Usar o texto</button>
+    </div>
+    <p class="aviso" id="planoAvisoLocais" style="display:none">⚠️ Este plano tem vários locais (📍) definidos no arquivo de dados. Se você alterar a busca acima, eles serão substituídos por uma busca única.</p>
+    <div class="acoes">
+      <button class="btn" id="planoSalvar">💾 Salvar</button>
+      <button class="btn perigo" id="planoExcluir">🗑️ Excluir</button>
+      <button class="btn sec" id="planoCancelar">Cancelar</button>
+    </div>
+  </div>
+</div>
+
 <input type="file" id="fileDados" accept=".json,.xml,application/json,text/xml" hidden>
 <input type="file" id="fileBackup" accept=".json,application/json" hidden>
 
@@ -338,6 +363,7 @@ function mesmaData(a,b){ return a.getFullYear()===b.getFullYear() && a.getMonth(
 function addDias(d,n){ return new Date(d.getFullYear(), d.getMonth(), d.getDate()+n); }
 function addMeses(d,n){ return new Date(d.getFullYear(), d.getMonth()+n, d.getDate()); }
 const DIAS_SEM = ["domingo","segunda","terça","quarta","quinta","sexta","sábado"];
+function isoData(d){ return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); }
 function fmtData(d){ return String(d.getDate()).padStart(2,"0")+"/"+String(d.getMonth()+1).padStart(2,"0"); }
 function fmtDataFull(d){ return fmtData(d)+"/"+d.getFullYear(); }
 function esc(s){ return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
@@ -352,6 +378,7 @@ function gravarLS(chave,val){
 
 /* ============ ESTADO ============ */
 let TRIP = lerLS(K_DADOS) || TRIP_DATA;      // fonte de dados (via importação)
+garantirIds(TRIP);
 let desafios = null;                          // [{id, crianca, texto, done, custom}]
 let filtroHome = "hoje";
 let cidadeAtiva = 0;
@@ -429,6 +456,104 @@ function botoesMaps(locais, maps, rotulo){
     + '</div>';
 }
 
+/* ============ PLANOS DO DIA (edição no app) ============ */
+// Ids internos para localizar cada plano; planosExtras = planos criados no app
+function novoId(prefixo){ return prefixo + Date.now().toString(36) + Math.random().toString(36).slice(2,8); }
+function garantirIds(t){
+  if(!Array.isArray(t.planosExtras)) t.planosExtras = [];
+  for(const c of t.cidades||[]) for(const lista of ["atracoes","segredos","armadilhas","dicas"])
+    for(const it of c[lista]||[]) if(!it.id) it.id = novoId("p");
+  for(const it of t.planosExtras) if(!it.id) it.id = novoId("x");
+}
+function acharPlano(pid){
+  for(const c of TRIP.cidades||[]) for(const lista of ["atracoes","segredos","armadilhas","dicas"]){
+    const arr = c[lista]||[];
+    const it = arr.find(x=>x.id===pid);
+    if(it) return { item: it, arr, cidade: c.nome };
+  }
+  const it = (TRIP.planosExtras||[]).find(x=>x.id===pid);
+  if(it) return { item: it, arr: TRIP.planosExtras, cidade: "" };
+  return null;
+}
+
+let planoEditando = null; // {novo:true} ou {pid, mapsOriginal, cidade}
+function abrirEditorPlano(pid, dataISO){
+  let item = null, cidade = "";
+  if(pid){
+    const ref = acharPlano(pid);
+    if(!ref) return;
+    item = ref.item; cidade = ref.cidade;
+  }
+  planoEditando = pid ? { pid, cidade } : { novo:true };
+  document.getElementById("planoTitulo").textContent = pid ? "✏️ Editar plano" : "➕ Novo plano";
+  document.getElementById("planoTexto").value = item ? item.texto : "";
+  document.getElementById("planoData").value = item ? (item.data||"") : (dataISO||"");
+  const mapsAtual = item ? (item.maps||"") : "";
+  document.getElementById("planoMaps").value = mapsAtual;
+  planoEditando.mapsOriginal = mapsAtual;
+  document.getElementById("planoAvisoLocais").style.display = (item && item.locais && item.locais.length) ? "block" : "none";
+  document.getElementById("planoExcluir").style.display = pid ? "inline-flex" : "none";
+  document.getElementById("modalPlano").classList.add("aberto");
+}
+function cidadeSugestao(){
+  if(planoEditando && planoEditando.cidade) return planoEditando.cidade.split(" e ")[0];
+  const dv = document.getElementById("planoData").value;
+  if(dv){ const c = cidadeDoDia(pd(dv)); if(c) return c; }
+  return "";
+}
+function salvarPlano(){
+  const texto = document.getElementById("planoTexto").value.trim();
+  const data = document.getElementById("planoData").value.trim();
+  const maps = document.getElementById("planoMaps").value.trim();
+  if(!texto){ alert("Descreva o plano."); return; }
+  if(planoEditando.novo){
+    // busca padrão atrelada ao conteúdo: texto + cidade do dia
+    const cid = cidadeSugestao();
+    TRIP.planosExtras.push({ id:"x"+Date.now(), texto, data,
+      maps: maps || (texto + (cid ? ", "+cid : "")) });
+  } else {
+    const ref = acharPlano(planoEditando.pid);
+    if(ref){
+      ref.item.texto = texto;
+      if(data) ref.item.data = data; else delete ref.item.data;
+      if(maps !== planoEditando.mapsOriginal){
+        if(maps){ ref.item.maps = maps; delete ref.item.locais; }
+        else { delete ref.item.maps; delete ref.item.locais; }
+      }
+    }
+  }
+  gravarLS(K_DADOS, TRIP);
+  fecharEditorPlano();
+  renderTudo();
+}
+function excluirPlano(){
+  const ref = acharPlano(planoEditando.pid);
+  if(ref && confirm('Excluir o plano "'+ref.item.texto+'"?')){
+    ref.arr.splice(ref.arr.indexOf(ref.item), 1);
+    gravarLS(K_DADOS, TRIP);
+    fecharEditorPlano();
+    renderTudo();
+  }
+}
+function fecharEditorPlano(){ document.getElementById("modalPlano").classList.remove("aberto"); planoEditando = null; }
+function ligarEditorPlano(){
+  document.getElementById("planoSalvar").addEventListener("click", salvarPlano);
+  document.getElementById("planoExcluir").addEventListener("click", excluirPlano);
+  document.getElementById("planoCancelar").addEventListener("click", fecharEditorPlano);
+  document.getElementById("modalPlano").addEventListener("click",(ev)=>{ if(ev.target.id==="modalPlano") fecharEditorPlano(); });
+  document.getElementById("planoUsarTexto").addEventListener("click",()=>{
+    const t = document.getElementById("planoTexto").value.trim();
+    const cid = cidadeSugestao();
+    document.getElementById("planoMaps").value = t ? t + (cid ? ", "+cid : "") : "";
+  });
+  document.addEventListener("click",(ev)=>{
+    const e1 = ev.target.closest("[data-editar-plano]");
+    if(e1){ ev.stopPropagation(); abrirEditorPlano(e1.getAttribute("data-editar-plano")); return; }
+    const e2 = ev.target.closest("[data-add-plano]");
+    if(e2){ ev.stopPropagation(); abrirEditorPlano(null, e2.getAttribute("data-add-plano")); }
+  });
+}
+
 /* ============ CRONOGRAMA (derivado dos dados) ============ */
 function cidadeDoDia(d){
   for(const h of TRIP.hospedagens||[]){
@@ -469,9 +594,14 @@ function construirCronograma(){
       for(const lista of ["atracoes","segredos","armadilhas","dicas"]){
         for(const item of c[lista]||[]){
           if(item.data && mesmaData(pd(item.data), d))
-            eventos.push({ ord:4, hr:"", ic: lista==="segredos" ? "💎" : "🎯", tx:item.texto, mapsQuery:item.maps, locais:item.locais });
+            eventos.push({ ord:4, hr:"", ic: lista==="segredos" ? "💎" : "🎯", tx:item.texto, mapsQuery:item.maps, locais:item.locais, pid:item.id });
         }
       }
+    }
+    // planos criados no próprio app
+    for(const p of TRIP.planosExtras||[]){
+      if(p.data && mesmaData(pd(p.data), d))
+        eventos.push({ ord:4, hr:"", ic:"📝", tx:p.texto, mapsQuery:p.maps, pid:p.id });
     }
     eventos.sort((a,b)=> a.ord-b.ord || String(a.hr).localeCompare(String(b.hr)));
     let cidade = cidadeDoDia(d);
@@ -513,7 +643,9 @@ function cardDia(dia, ehHoje, aberto){
       // Botão do Google Maps se houver endereço/local
       html += botoesMaps(e.locais, e.mapsQuery, "Abrir no Maps");
       
-      html += '</div></div>'; // fecha flex e div
+      html += '</div>';
+      if(e.pid) html += '<button class="acao" data-editar-plano="'+esc(e.pid)+'" aria-label="Editar plano">✏️</button>';
+      html += '</div>'; // fecha flex e div
       
       // Gaveta Expansível de Segundo Nível
       if(temDetalhes){
@@ -527,6 +659,7 @@ function cardDia(dia, ehHoje, aberto){
       html += '</div>'; // fecha evento
     });
   }
+  html += '<div style="margin-top:8px"><button class="btn-maps" data-add-plano="'+isoData(dia.data)+'">➕ Adicionar plano</button></div>';
   return html + '</div></div>';
 }
 
@@ -888,7 +1021,9 @@ function aoImportarDados(texto){
   if(limpo.startsWith("<")) novo = xmlParaTrip(limpo);
   else novo = JSON.parse(limpo);
   validarTrip(novo);
+  novo.planosExtras = (TRIP && TRIP.planosExtras) || [];  // preserva planos criados no app
   TRIP = novo;
+  garantirIds(TRIP);
   gravarLS(K_DADOS, TRIP);
   mesclarDesafiosDoTrip();
   cidadeAtiva = 0;
@@ -898,7 +1033,8 @@ function aoImportarDados(texto){
 
 /* ============ BACKUP (progresso + desafios) ============ */
 function exportarBackup(){
-  const payload = { app:"viagem2026", tipo:"backup", v:1, geradoEm:new Date().toISOString(), desafios: desafios };
+  const payload = { app:"viagem2026", tipo:"backup", v:2, geradoEm:new Date().toISOString(),
+    desafios: desafios, dados: temDados() ? TRIP : null };
   const json = JSON.stringify(payload, null, 2);
   const ta = document.getElementById("modalTexto");
   ta.value = json;
@@ -919,9 +1055,16 @@ function importarBackup(texto){
   const dados = JSON.parse(texto.replace(/^﻿/,"").trim());
   const items = Array.isArray(dados) ? dados : dados.desafios;
   if(!Array.isArray(items)) throw new Error("Backup inválido: lista de desafios não encontrada.");
+  // Backups v2 incluem os dados da viagem (com edições de planos feitas no app)
+  if(dados && dados.dados){
+    validarTrip(dados.dados);
+    TRIP = dados.dados;
+    garantirIds(TRIP);
+    gravarLS(K_DADOS, TRIP);
+  }
   desafios = items.map(d=>({ id:String(d.id), crianca:d.crianca, texto:d.texto, done:!!d.done, custom:!!d.custom }));
   salvarDesafios();
-  renderDesafios();
+  renderTudo();
   alert("Backup restaurado! ✅");
 }
 
@@ -1006,6 +1149,7 @@ carregarDesafios();
 iniciarNav();
 iniciarFormDesafio();
 ligarArquivos();
+ligarEditorPlano();
 renderTudo();
 mostrarView("home");
 </script>

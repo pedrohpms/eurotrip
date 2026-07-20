@@ -56,6 +56,16 @@ Regras do XML:
 - **Localização das atrações:** o atributo `maps="consulta do Google Maps"` em qualquer `<item>` gera o botão "📍 Maps" no guia da cidade e, para itens com data, também no card do dia no cronograma. Para itens com **vários lugares** (ex.: "Hamleys + Lego Store + M&M's World"), use elementos filhos `<local nome="Hamleys" maps="Hamleys, Regent Street, London"/>` — cada `<local>` vira um botão próprio, com o nome no rótulo.
 - O atributo opcional `emoji` em `<membro>` personaliza o ícone nos desafios e passaportes.
 
+## ✍️ Editar os planos de cada dia (no próprio app)
+
+Cada card de dia no cronograma tem um **✏️** ao lado de cada plano e um botão **➕ Adicionar plano** no rodapé. O editor permite mudar o texto, mover o plano para outro dia e definir a **busca do Maps**:
+
+- O botão **🔎 Usar o texto** preenche a busca com o texto do plano + a cidade do dia — assim a busca acompanha o que você editou.
+- Em planos novos, se a busca ficar vazia, o app usa automaticamente o texto + cidade.
+- Se o plano tinha vários locais (📍) vindos do XML, alterar a busca os substitui por uma busca única (o app avisa antes).
+
+As edições ficam salvas **no aparelho** (localStorage) e entram no **Exportar backup** (junto com os desafios). Atenção: **Importar dados** (XML) substitui os planos do roteiro — edições feitas no app sobre itens do XML são perdidas; apenas os planos **criados** no app (➕) são preservados. Antes de reimportar o XML, exporte um backup.
+
 ## 🧭 Uso rápido
 
 - **🏠 Cronograma** — filtros "Hoje" (com contagem regressiva antes do embarque), "Próximos Dias" e "Ver Tudo".
