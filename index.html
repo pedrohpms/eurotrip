@@ -465,14 +465,45 @@ function cardDia(dia, ehHoje){
   let html = '<div class="card dia'+(ehHoje?' hoje':'')+'">';
   html += '<div class="cab"><div class="data">'+fmtData(dia.data)+' <small>'+DIAS_SEM[dia.data.getDay()]+'</small></div>';
   html += '<span class="badge'+(ehHoje?' hoje':'')+'">'+(ehHoje?'HOJE · ':'')+esc(dia.cidade)+'</span></div>';
+  
   if(dia.eventos.length===0){
     html += '<div class="evento"><span class="ic">🌤️</span><div class="tx">Dia livre — veja ideias no Guia de '+esc(dia.cidade)+'</div></div>';
   } else {
-    for(const e of dia.eventos){
-      html += '<div class="evento"><span class="ic">'+e.ic+'</span><div><div class="tx">'
-        + (e.hr ? '<span class="hr">'+esc(e.hr)+' · </span>' : '') + esc(e.tx) + '</div>'
-        + (e.sub ? '<div class="mini">'+esc(e.sub)+'</div>' : '') + '</div></div>';
-    }
+    dia.eventos.forEach((e, idx)=>{
+      const detId = "det-"+dia.data.getTime()+"-"+idx;
+      const temDetalhes = e.pnr || e.assentos || e.aviso;
+      
+      html += '<div class="evento" style="flex-direction:column;gap:4px;">';
+      html += '<div style="display:flex;gap:10px;width:100%;align-items:flex-start;">';
+      html += '<span class="ic">'+e.ic+'</span>';
+      html += '<div style="flex:1;">';
+      html += '<div class="tx" '+(temDetalhes ? 'onclick="toggleCardDetalhe(\''+detId+'\')" style="cursor:pointer;"' : '')+'>';
+      html += (e.hr ? '<span class="hr">'+esc(e.hr)+' · </span>' : '') + esc(e.tx);
+      if(temDetalhes) html += ' <small style="color:var(--accent);font-weight:700;">[+ info]</small>';
+      html += '</div>';
+      
+      if(e.sub) html += '<div class="mini">'+esc(e.sub)+'</div>';
+      
+      // Botão do Google Maps se houver endereço/local
+      if(e.mapsQuery){
+        html += '<div style="margin-top:6px;">';
+        html += '<button class="btn sec" style="min-height:32px;padding:2px 10px;font-size:.75rem;border-radius:8px;" onclick="event.stopPropagation();abrirMaps(\''+esc(e.mapsQuery)+'\')">📍 Abrir no Maps</button>';
+        html += '</div>';
+      }
+      
+      html += '</div></div>'; // fecha flex e div
+      
+      // Gaveta Expansível de Segundo Nível
+      if(temDetalhes){
+        html += '<div id="'+detId+'" style="display:none;margin-left:36px;margin-top:4px;padding:8px 10px;background:var(--card2);border-radius:10px;border:1px solid var(--border);font-size:.8rem;" class="mini">';
+        if(e.pnr) html += '<div>🎫 <b>PNR / Reserva:</b> <code style="background:var(--accent-soft);color:var(--accent);padding:2px 6px;border-radius:6px;font-weight:bold;">'+esc(e.pnr)+'</code></div>';
+        if(e.assentos) html += '<div style="margin-top:2px;">💺 <b>Assentos:</b> '+esc(e.assentos)+'</div>';
+        if(e.aviso) html += '<div style="margin-top:4px;color:var(--warn);font-weight:600;">⚠️ '+esc(e.aviso)+'</div>';
+        html += '</div>';
+      }
+      
+      html += '</div>'; // fecha evento
+    });
   }
   return html + '</div>';
 }
@@ -769,16 +800,23 @@ function xmlParaTrip(texto){
       }))
     },
     hospedagens: [...raiz.querySelectorAll("hospedagens > hospedagem")].map(h=>({
-      cidade: h.getAttribute("cidade"),
-      nome: txtEl(h, "nome"), endereco: txtEl(h, "endereco"),
-      periodos: [...h.querySelectorAll("periodo")].map(p=>({ inicio: p.getAttribute("inicio"), fim: p.getAttribute("fim") }))
-    })),
-    transportes: [...raiz.querySelectorAll("transportes > transporte")].map(t=>({
-      tipo: t.getAttribute("tipo"),
-      dataPartida: t.getAttribute("dataPartida"), horaPartida: t.getAttribute("horaPartida"),
-      dataChegada: t.getAttribute("dataChegada"), horaChegada: t.getAttribute("horaChegada"),
-      de: txtEl(t,"de"), para: txtEl(t,"para"), detalhes: txtEl(t,"detalhes")
-    })),
+  cidade: h.getAttribute("cidade"),
+  nome: txtEl(h, "nome"), 
+  endereco: txtEl(h, "endereco"),
+  mapsQuery: txtEl(h, "mapsQuery") || txtEl(h, "endereco") || txtEl(h, "nome"),
+  periodos: [...h.querySelectorAll("periodo")].map(p=>({ inicio: p.getAttribute("inicio"), fim: p.getAttribute("fim") }))
+})),
+
+transportes: [...raiz.querySelectorAll("transportes > transporte")].map(t=>({
+  tipo: t.getAttribute("tipo"),
+  dataPartida: t.getAttribute("dataPartida"), horaPartida: t.getAttribute("horaPartida"),
+  dataChegada: t.getAttribute("dataChegada"), horaChegada: t.getAttribute("horaChegada"),
+  pnr: t.getAttribute("pnr") || "",
+  assentos: t.getAttribute("assentos") || "",
+  mapsPartida: txtEl(t, "mapsPartida"),
+  aviso: txtEl(t, "aviso"),
+  de: txtEl(t,"de"), para: txtEl(t,"para"), detalhes: txtEl(t,"detalhes")
+})),
     cidades: [...raiz.querySelectorAll("cidades > cidade")].map(c=>({
       nome: c.getAttribute("nome"),
       dias: Number(c.getAttribute("dias")) || 0,
@@ -883,6 +921,20 @@ function mostrarView(v){
 function iniciarNav(){
   document.querySelectorAll("nav.bottom button").forEach(b=>b.addEventListener("click",()=>mostrarView(b.dataset.view)));
 }
+
+function abrirMaps(query){
+  if(!query) return;
+  const url = "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(query);
+  window.open(url, "_blank");
+}
+
+function toggleCardDetalhe(id){
+  const el = document.getElementById(id);
+  if(el){
+    const hidden = el.style.display === "none" || el.style.display === "";
+    el.style.display = hidden ? "block" : "none";
+  }
+}  
 
 /* ============ BOOT ============ */
 function renderTudo(){
