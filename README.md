@@ -51,6 +51,7 @@ Regras do XML:
 
 - Mantenha a estrutura da raiz `<viagem>` (familia, seguro, hospedagens, transportes, cidades, desafios) e datas no formato `AAAA-MM-DD`.
 - **Passaportes:** preencha em cada `<membro>` os atributos `passaporte="NÚMERO"` e `validadePassaporte="AAAA-MM-DD"`. Eles aparecem no card **🛂 Passaportes** da aba SOS — com alerta automático se a validade vencer a menos de 6 meses do fim da viagem (exigência comum na imigração).
+- **Reservas:** em cada `<transporte>`, o atributo `pnr="CÓDIGO"` guarda o localizador/código de reserva (TAP, Eurostar, DB…) e `<assentos>` o vagão/assentos — ambos aparecem na gaveta "[+ info]" do cronograma e no card Transportes da aba SOS. `<mapsPartida>` (transportes) e `<mapsQuery>` (hospedagens) criam o botão "📍 Abrir no Maps"; `<aviso>` mostra alertas de horário em destaque.
 - Itens de cidade com atributo `data="AAAA-MM-DD"` aparecem também no cronograma do dia; sem o atributo, ficam só no guia da cidade.
 - O atributo opcional `emoji` em `<membro>` personaliza o ícone nos desafios e passaportes.
 

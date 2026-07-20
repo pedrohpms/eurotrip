@@ -167,6 +167,14 @@ h2.secao{font-size:.85rem;text-transform:uppercase;letter-spacing:.06em;color:va
 .alerta{color:var(--warn);font-size:.78rem;font-weight:700}
 .acoes{display:flex;flex-wrap:wrap;gap:10px;margin-top:10px}
 
+/* ============ SANFONA (accordion) ============ */
+.acc .acc-head{display:flex;align-items:center;justify-content:space-between;gap:8px;cursor:pointer;min-height:44px;user-select:none;-webkit-user-select:none}
+.acc .acc-head .cab,.acc .acc-head .titulo,.acc .acc-head h3{margin-bottom:0;flex:1}
+.acc .seta{flex:0 0 auto;font-size:.85rem;color:var(--muted);transition:transform .2s ease}
+.acc.aberto .seta{transform:rotate(90deg)}
+.acc .acc-body{display:none;padding-top:4px}
+.acc.aberto .acc-body{display:block}
+
 /* ============ NAV INFERIOR ============ */
 nav.bottom{
   position:fixed;left:0;right:0;bottom:0;z-index:40;
@@ -462,10 +470,13 @@ function construirCronograma(){
   return dias;
 }
 
-function cardDia(dia, ehHoje){
-  let html = '<div class="card dia'+(ehHoje?' hoje':'')+'">';
+function cardDia(dia, ehHoje, aberto){
+  let html = '<div class="card dia acc'+(ehHoje?' hoje':'')+((ehHoje||aberto)?' aberto':'')+'">';
+  html += '<div class="acc-head" onclick="toggleAcc(this)">';
   html += '<div class="cab"><div class="data">'+fmtData(dia.data)+' <small>'+DIAS_SEM[dia.data.getDay()]+'</small></div>';
   html += '<span class="badge'+(ehHoje?' hoje':'')+'">'+(ehHoje?'HOJE · ':'')+esc(dia.cidade)+'</span></div>';
+  html += '<span class="seta">▶</span></div>';
+  html += '<div class="acc-body">';
   
   if(dia.eventos.length===0){
     html += '<div class="evento"><span class="ic">🌤️</span><div class="tx">Dia livre — veja ideias no Guia de '+esc(dia.cidade)+'</div></div>';
@@ -506,7 +517,7 @@ function cardDia(dia, ehHoje){
       html += '</div>'; // fecha evento
     });
   }
-  return html + '</div>';
+  return html + '</div></div>';
 }
 
 function renderHome(){
@@ -528,7 +539,7 @@ function renderHome(){
         + '<div class="num">'+faltam+'</div>'
         + '<p>'+(faltam===1?'dia':'dias')+' para o embarque em '+fmtData(ini)+'!</p></div>';
       html += '<h2 class="secao">Primeiros dias da viagem</h2>';
-      dias.slice(0,3).forEach(d=>{ html += cardDia(d,false); });
+      dias.slice(0,3).forEach((d,i)=>{ html += cardDia(d,false,i===0); });
     } else if(hoje > fim){
       html += '<div class="card contagem"><div style="font-size:2rem">🏡❤️</div>'
         + '<div class="num" style="font-size:1.6rem">Fim da viagem!</div>'
@@ -545,10 +556,11 @@ function renderHome(){
       html += '<div class="card"><p class="mini">A viagem já terminou — use “Ver Tudo” para relembrar o roteiro. 😊</p></div>';
     } else {
       const sel = dias.filter(x=> x.data >= base && x.data <= addDias(base,4));
-      sel.forEach(x=>{ html += cardDia(x, mesmaData(x.data,hoje)); });
+      sel.forEach((x,i)=>{ html += cardDia(x, mesmaData(x.data,hoje), i===0); });
     }
   } else {
-    dias.forEach(x=>{ html += cardDia(x, mesmaData(x.data,hoje)); });
+    const dentroViagem = hoje >= ini && hoje <= fim;
+    dias.forEach((x,i)=>{ html += cardDia(x, mesmaData(x.data,hoje), !dentroViagem && i===0); });
   }
   cont.innerHTML = html;
 }
@@ -569,14 +581,18 @@ function renderPillsCidades(){
     '<button class="pill'+(i===cidadeAtiva?' ativa':'')+'" data-i="'+i+'">'+(EMOJI_CIDADE[c.nome]||"📍")+' '+esc(c.nome)+'</button>').join("");
   el.querySelectorAll("button").forEach(b=>b.addEventListener("click",()=>{ cidadeAtiva=+b.dataset.i; renderPillsCidades(); renderGuia(); }));
 }
-function blocoLista(titulo, ic, itens){
+function blocoLista(titulo, ic, itens, aberto){
   if(!itens || !itens.length) return "";
-  let html = '<div class="card gsec"><div class="titulo">'+ic+' '+titulo+'</div><ul>';
+  let html = '<div class="card gsec acc'+(aberto?' aberto':'')+'">'
+    + '<div class="acc-head" onclick="toggleAcc(this)">'
+    + '<div class="titulo">'+ic+' '+titulo+' <span class="badge">'+itens.length+'</span></div>'
+    + '<span class="seta">▶</span></div>'
+    + '<div class="acc-body"><ul>';
   for(const it of itens){
     html += '<li><span>'+esc(it.texto)+'</span>'
       + (it.data ? '<span class="chip-data">'+fmtData(pd(it.data))+'</span>' : '') + '</li>';
   }
-  return html + '</ul></div>';
+  return html + '</ul></div></div>';
 }
 function renderGuia(){
   const el = document.getElementById("guiaConteudo");
@@ -589,10 +605,10 @@ function renderGuia(){
   let html = '<div class="card"><h3>'+(EMOJI_CIDADE[c.nome]||"📍")+' '+esc(c.nome)
     + ' <span class="badge">'+c.dias+' dias</span></h3>'
     + '<p class="mini">📍 Base: '+esc(c.pontoFocal||"")+'</p></div>';
-  html += blocoLista("Roteiro &amp; Atrações","🎯",c.atracoes);
-  html += blocoLista("Segredos locais","💎",c.segredos);
-  html += blocoLista("Armadilhas a evitar","⚠️",c.armadilhas);
-  html += blocoLista("Informações úteis","💡",c.dicas);
+  html += blocoLista("Roteiro &amp; Atrações","🎯",c.atracoes,true);
+  html += blocoLista("Segredos locais","💎",c.segredos,false);
+  html += blocoLista("Armadilhas a evitar","⚠️",c.armadilhas,false);
+  html += blocoLista("Informações úteis","💡",c.dicas,false);
   el.innerHTML = html;
 }
 
@@ -680,6 +696,12 @@ function iniciarFormDesafio(){
 }
 
 /* ============ SOS & DOCUMENTOS ============ */
+// Card em sanfona da aba SOS: título clicável, corpo expansível
+function sosCard(titulo, aberto, corpo){
+  return '<div class="card acc'+(aberto?' aberto':'')+'">'
+    + '<div class="acc-head" onclick="toggleAcc(this)"><h3>'+titulo+'</h3><span class="seta">▶</span></div>'
+    + '<div class="acc-body">'+corpo+'</div></div>';
+}
 function renderSOS(){
   const s = TRIP.seguro||{};
   let html = "";
@@ -687,24 +709,24 @@ function renderSOS(){
   if(!temDados()) html += cardVazio();
 
   if(s.nome || s.plano){
-    html += '<div class="card"><h3>🛡️ Seguro Viagem</h3>'
-      + '<div class="kv"><b>'+esc(s.nome||"")+'</b></div>'
-      + '<div class="kv"><span>Plano</span><b>'+esc(s.plano||"")+'</b></div></div>';
+    html += sosCard("🛡️ Seguro Viagem", false,
+      '<div class="kv"><b>'+esc(s.nome||"")+'</b></div>'
+      + '<div class="kv"><span>Plano</span><b>'+esc(s.plano||"")+'</b></div>');
   }
 
   if((s.telefones||[]).length){
-    html += '<div class="card"><h3>📞 SOS — ligações gratuitas</h3>';
     const ROTULO_TEL = { gratuito:"", whatsapp:" (WhatsApp)", "a-cobrar":" (a cobrar)" };
+    let corpo = "";
     for(const t of s.telefones){
       const href = t.tipo==="whatsapp" ? "https://wa.me/"+String(t.numero).replace(/\D/g,"") : "tel:"+String(t.numero).replace(/[^\d+]/g,"");
-      html += '<div class="tel"><span>'+esc(t.pais)+esc(ROTULO_TEL[t.tipo]||"")+'</span><a href="'+href+'">'+esc(t.numero)+'</a></div>';
+      corpo += '<div class="tel"><span>'+esc(t.pais)+esc(ROTULO_TEL[t.tipo]||"")+'</span><a href="'+href+'">'+esc(t.numero)+'</a></div>';
     }
-    html += '</div>';
+    html += sosCard("📞 SOS — ligações gratuitas", true, corpo);
   }
 
   if((TRIP.familia||[]).length){
-    html += '<div class="card"><h3>🛂 Passaportes</h3>';
     const fimViagem = TRIP.fim ? pd(TRIP.fim) : null;
+    let corpo = "";
     for(const m of TRIP.familia){
       let validade = "";
       if(m.validadePassaporte){
@@ -713,50 +735,53 @@ function renderSOS(){
           validade += ' <span class="alerta">⚠️ menos de 6 meses após a viagem</span>';
         }
       }
-      html += '<div class="kv" style="flex-direction:column;align-items:flex-start;gap:2px">'
+      corpo += '<div class="kv" style="flex-direction:column;align-items:flex-start;gap:2px">'
         + '<b>'+(m.emoji?esc(m.emoji)+' ':'')+esc(m.nome)+(m.idade?(' ('+m.idade+')'):'')+' — '
         + (m.passaporte?esc(m.passaporte):'<span class="mini">número não informado</span>')+'</b>'
         + (validade?'<span>'+validade+'</span>':'') + '</div>';
     }
-    html += '</div>';
+    html += sosCard("🛂 Passaportes", false, corpo);
 
-    html += '<div class="card"><h3>🎫 Vouchers do seguro</h3>';
+    corpo = "";
     for(const m of TRIP.familia){
-      html += '<div class="kv"><span>'+esc(m.nome)+(m.idade?(' ('+m.idade+')'):'')+'</span><b>'+esc(m.voucherSeguro||"—")+'</b></div>';
+      corpo += '<div class="kv"><span>'+esc(m.nome)+(m.idade?(' ('+m.idade+')'):'')+'</span><b>'+esc(m.voucherSeguro||"—")+'</b></div>';
     }
-    html += '</div>';
+    html += sosCard("🎫 Vouchers do seguro", false, corpo);
   }
 
   if((TRIP.hospedagens||[]).length){
-    html += '<div class="card"><h3>🏨 Hospedagens</h3>';
+    let corpo = "";
     for(const h of TRIP.hospedagens){
       const per = (h.periodos||[]).map(p=>fmtData(pd(p.inicio))+"–"+fmtData(pd(p.fim))).join(" e ");
-      html += '<div class="kv" style="flex-direction:column;align-items:flex-start;gap:2px">'
+      corpo += '<div class="kv" style="flex-direction:column;align-items:flex-start;gap:2px">'
         + '<b>'+esc(h.cidade)+' — '+esc(h.nome)+'</b>'
         + '<span>'+esc(h.endereco||"")+'</span><span>🗓️ '+per+'</span></div>';
     }
-    html += '</div>';
+    html += sosCard("🏨 Hospedagens", false, corpo);
   }
 
   if((TRIP.transportes||[]).length){
-    html += '<div class="card"><h3>🎟️ Transportes comprados</h3>';
+    let corpo = "";
     for(const t of TRIP.transportes){
-      html += '<div class="kv" style="flex-direction:column;align-items:flex-start;gap:2px">'
+      corpo += '<div class="kv" style="flex-direction:column;align-items:flex-start;gap:2px">'
         + '<b>'+(t.tipo==="voo"?"✈️":"🚆")+' '+fmtData(pd(t.dataPartida))+' · '+esc(t.de)+' → '+esc(t.para)+'</b>'
         + '<span>'+esc(t.horaPartida)+' – '+esc(t.horaChegada)
         + (mesmaData(pd(t.dataPartida),pd(t.dataChegada))?'':' (chega '+fmtData(pd(t.dataChegada))+')')
-        + ' · '+esc(t.detalhes||"")+'</span></div>';
+        + (t.detalhes?' · '+esc(t.detalhes):'')+'</span>'
+        + (t.pnr?'<span>🎫 Localizador: <b style="background:var(--accent-soft);color:var(--accent);padding:1px 8px;border-radius:6px">'+esc(t.pnr)+'</b></span>':'')
+        + (t.assentos?'<span>💺 '+esc(t.assentos)+'</span>':'')
+        + '</div>';
     }
-    html += '</div>';
+    html += sosCard("🎟️ Transportes comprados", false, corpo);
   }
 
-  html += '<div class="card"><h3>💾 Dados &amp; Backup</h3>'
-    + '<p class="mini">Importe o arquivo .xml/.json com os dados da viagem, ou faça backup do progresso dos desafios (plano B se o navegador perder os dados).</p>'
+  html += sosCard("💾 Dados &amp; Backup", !temDados(),
+    '<p class="mini">Importe o arquivo .xml/.json com os dados da viagem, ou faça backup do progresso dos desafios (plano B se o navegador perder os dados).</p>'
     + '<div class="acoes">'
     + '<button class="btn sec btnImportarDados">📂 Importar dados</button>'
     + '<button class="btn" id="btnExportarBackup">⬆️ Exportar backup</button>'
     + '<button class="btn sec" id="btnImportarBackup">⬇️ Importar backup</button>'
-    + '</div></div>';
+    + '</div>');
 
   const cont = document.getElementById("sosConteudo");
   cont.innerHTML = html;
@@ -812,8 +837,8 @@ transportes: [...raiz.querySelectorAll("transportes > transporte")].map(t=>({
   tipo: t.getAttribute("tipo"),
   dataPartida: t.getAttribute("dataPartida"), horaPartida: t.getAttribute("horaPartida"),
   dataChegada: t.getAttribute("dataChegada"), horaChegada: t.getAttribute("horaChegada"),
-  pnr: t.getAttribute("pnr") || "",
-  assentos: t.getAttribute("assentos") || "",
+  pnr: t.getAttribute("pnr") || txtEl(t, "pnr") || "",
+  assentos: t.getAttribute("assentos") || txtEl(t, "assentos") || "",
   mapsPartida: txtEl(t, "mapsPartida"),
   aviso: txtEl(t, "aviso"),
   de: txtEl(t,"de"), para: txtEl(t,"para"), detalhes: txtEl(t,"detalhes")
@@ -935,7 +960,17 @@ function toggleCardDetalhe(id){
     const hidden = el.style.display === "none" || el.style.display === "";
     el.style.display = hidden ? "block" : "none";
   }
-}  
+}
+
+// Sanfona: abre o card tocado e fecha os irmãos do mesmo grupo
+function toggleAcc(head){
+  const card = head.closest(".acc");
+  if(!card) return;
+  const abrir = !card.classList.contains("aberto");
+  const grupo = card.parentElement;
+  if(grupo) [...grupo.children].forEach(c=>{ if(c!==card && c.classList) c.classList.remove("aberto"); });
+  card.classList.toggle("aberto", abrir);
+}
 
 /* ============ BOOT ============ */
 function renderTudo(){
