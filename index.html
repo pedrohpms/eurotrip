@@ -447,6 +447,24 @@ function ligarBotoesImportar(raiz){
     b.addEventListener("click",()=>document.getElementById("fileDados").click()));
 }
 
+// Pernas/conexões de um transporte, com tempo de troca em destaque
+function htmlPernas(pernas){
+  if(!pernas || !pernas.length) return "";
+  let html = '<div style="margin-top:8px;font-weight:700;">🧭 Trechos da viagem</div>';
+  pernas.forEach((p,i)=>{
+    if(p.conexao) html += '<div style="margin:5px 0 2px;color:var(--warn);font-weight:700;">⏱️ '+esc(p.conexao)+'</div>';
+    html += '<div style="margin-top:3px;padding:4px 8px;border-left:2px solid var(--accent);">'
+      + '<div><b>'+(i+1)+'º · '+esc(p.de||"")+' → '+esc(p.para||"")+'</b>'
+      + (p.horaPartida ? ' <span class="hr">'+esc(p.horaPartida)+(p.horaChegada?'–'+esc(p.horaChegada):'')+'</span>' : '') + '</div>'
+      + (p.servico || p.plataforma
+          ? '<div>'+(p.servico?esc(p.servico):'')+(p.servico&&p.plataforma?' · ':'')+(p.plataforma?'Plataforma '+esc(p.plataforma):'')+'</div>'
+          : '')
+      + (p.assentos ? '<div>💺 '+esc(p.assentos)+'</div>' : '')
+      + '</div>';
+  });
+  return html;
+}
+
 // Um botão 📍 por local; se o item tem só maps (sem <local>), um botão único com rótulo padrão
 function botoesMaps(locais, maps, rotulo){
   const lista = (locais && locais.length) ? locais : (maps ? [{nome:rotulo, maps:maps}] : []);
@@ -580,7 +598,7 @@ function construirCronograma(){
           ic: t.tipo==="voo" ? "✈️" : "🚆",
           tx: t.de+" → "+t.para+(chegaOutroDia ? " (chega "+fmtData(pd(t.dataChegada))+" "+t.horaChegada+")" : " ("+t.horaPartida+" – "+t.horaChegada+")"),
           sub: t.detalhes,
-          aviso: t.aviso, pnr: t.pnr, assentos: t.assentos, mapsQuery: t.mapsPartida });
+          aviso: t.aviso, pnr: t.pnr, assentos: t.assentos, mapsQuery: t.mapsPartida, pernas: t.pernas });
       } else if(t.dataChegada && mesmaData(pd(t.dataChegada), d)){
         eventos.push({ ord:2, hr:t.horaChegada, ic:"🛬", tx:"Chegada em "+t.para+" às "+t.horaChegada, sub:t.detalhes });
       }
@@ -627,7 +645,7 @@ function cardDia(dia, ehHoje, aberto){
   } else {
     dia.eventos.forEach((e, idx)=>{
       const detId = "det-"+dia.data.getTime()+"-"+idx;
-      const temDetalhes = e.pnr || e.assentos || e.aviso;
+      const temDetalhes = e.pnr || e.assentos || e.aviso || (e.pernas && e.pernas.length);
       
       html += '<div class="evento" style="flex-direction:column;gap:4px;">';
       html += '<div style="display:flex;gap:10px;width:100%;align-items:flex-start;">';
@@ -653,6 +671,7 @@ function cardDia(dia, ehHoje, aberto){
         if(e.pnr) html += '<div>🎫 <b>PNR / Reserva:</b> <code style="background:var(--accent-soft);color:var(--accent);padding:2px 6px;border-radius:6px;font-weight:bold;">'+esc(e.pnr)+'</code></div>';
         if(e.assentos) html += '<div style="margin-top:2px;">💺 <b>Assentos:</b> '+esc(e.assentos)+'</div>';
         if(e.aviso) html += '<div style="margin-top:4px;color:var(--warn);font-weight:600;">⚠️ '+esc(e.aviso)+'</div>';
+        html += htmlPernas(e.pernas);
         html += '</div>';
       }
       
@@ -914,6 +933,7 @@ function renderSOS(){
         + (t.detalhes?' · '+esc(t.detalhes):'')+'</span>'
         + (t.pnr?'<span>🎫 Localizador: <b style="background:var(--accent-soft);color:var(--accent);padding:1px 8px;border-radius:6px">'+esc(t.pnr)+'</b></span>':'')
         + (t.assentos?'<span>💺 '+esc(t.assentos)+'</span>':'')
+        + htmlPernas(t.pernas)
         + '</div>';
     }
     html += sosCard("🎟️ Transportes comprados", false, corpo);
@@ -990,6 +1010,12 @@ transportes: [...raiz.querySelectorAll("transportes > transporte")].map(t=>({
   assentos: t.getAttribute("assentos") || txtEl(t, "assentos") || "",
   mapsPartida: txtEl(t, "mapsPartida"),
   aviso: txtEl(t, "aviso"),
+  pernas: [...t.querySelectorAll("pernas > perna")].map(p=>({
+    de: p.getAttribute("de")||"", para: p.getAttribute("para")||"",
+    horaPartida: p.getAttribute("horaPartida")||"", horaChegada: p.getAttribute("horaChegada")||"",
+    servico: p.getAttribute("servico")||"", plataforma: p.getAttribute("plataforma")||"",
+    assentos: p.getAttribute("assentos")||"", conexao: p.getAttribute("conexao")||""
+  })),
   de: txtEl(t,"de"), para: txtEl(t,"para"), detalhes: txtEl(t,"detalhes")
 })),
     cidades: [...raiz.querySelectorAll("cidades > cidade")].map(c=>({
