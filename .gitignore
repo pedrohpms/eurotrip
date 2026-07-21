@@ -1,3 +1,5 @@
 # Dados pessoais (passaportes, vouchers, endereços) — NUNCA publicar
 dados-viagem.xml
+setup-supabase.sql
 backup-viagem2026*.json
+backup-eurotrip2026*.json

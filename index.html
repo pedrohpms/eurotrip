@@ -47,8 +47,10 @@ header.app{
   display:flex;align-items:center;justify-content:space-between;gap:8px;
   max-width:680px;margin:0 auto;
 }
-header.app h1{font-size:1.25rem;font-weight:800;letter-spacing:-.02em}
+header.app h1{font-size:1.15rem;font-weight:800;letter-spacing:-.02em}
 header.app .sub{font-size:.78rem;color:var(--muted);font-weight:500}
+.hdr-acoes{display:flex;align-items:center;gap:8px}
+#statusDot{font-size:.7rem;min-width:36px;min-height:36px;display:flex;align-items:center;justify-content:center}
 #btnTema{
   min-width:44px;min-height:44px;border-radius:14px;
   background:var(--card);box-shadow:var(--shadow);
@@ -135,6 +137,7 @@ h2.secao{font-size:.85rem;text-transform:uppercase;letter-spacing:.06em;color:va
   display:flex;align-items:center;justify-content:center;border-radius:10px;
 }
 .desafio .acao:active,.evento .acao:active{background:var(--card2)}
+.evento .acao.mini-seta{min-width:30px;font-size:.85rem}
 .campo{
   min-height:44px;border-radius:12px;border:1px solid var(--border);
   background:var(--card2);padding:0 12px;width:100%;
@@ -200,7 +203,7 @@ nav.bottom button .ic{font-size:1.35rem;line-height:1}
 nav.bottom button.ativa{color:var(--accent)}
 nav.bottom button.ativa .ic{transform:translateY(-1px)}
 
-/* ============ MODAL ============ */
+/* ============ MODAIS ============ */
 #modal,#modalPlano{
   position:fixed;inset:0;z-index:50;background:rgba(0,0,0,.5);
   display:none;align-items:flex-end;justify-content:center;
@@ -218,6 +221,21 @@ nav.bottom button.ativa .ic{transform:translateY(-1px)}
   resize:vertical;
 }
 .aviso{font-size:.8rem;color:var(--muted)}
+
+/* ============ TELA DE LOGIN ============ */
+#telaLogin{
+  position:fixed;inset:0;z-index:90;background:var(--bg);
+  display:none;align-items:center;justify-content:center;padding:20px;
+}
+#telaLogin.visivel{display:flex}
+#telaLogin .caixa{
+  width:100%;max-width:380px;background:var(--card);border:1px solid var(--border);
+  border-radius:20px;box-shadow:var(--shadow);padding:26px 22px;
+  display:flex;flex-direction:column;gap:12px;text-align:center;
+}
+#telaLogin h2{font-size:1.2rem;font-weight:800}
+#telaLogin p{font-size:.82rem;color:var(--muted)}
+#loginErro{color:var(--danger);font-size:.82rem;font-weight:600;min-height:1em}
 </style>
 </head>
 <body>
@@ -225,9 +243,12 @@ nav.bottom button.ativa .ic{transform:translateY(-1px)}
 <header class="app">
   <div>
     <h1>EuroTrip da Família Buscapé 2026 ✈️</h1>
-    <div class="sub" id="subHeader">App offline de viagem</div>
+    <div class="sub" id="subHeader">Carregando…</div>
   </div>
-  <button id="btnTema" aria-label="Alternar tema claro/escuro">🌙</button>
+  <div class="hdr-acoes">
+    <span id="statusDot" title="Status da conexão">🟢</span>
+    <button id="btnTema" aria-label="Alternar tema claro/escuro">🌙</button>
+  </div>
 </header>
 
 <main>
@@ -277,7 +298,7 @@ nav.bottom button.ativa .ic{transform:translateY(-1px)}
   <div class="caixa">
     <h3 id="modalTitulo">Backup</h3>
     <textarea id="modalTexto" readonly></textarea>
-    <p class="aviso">Copie o texto acima e guarde (WhatsApp, e-mail, notas). Ele restaura seus desafios e progresso pelo botão “Importar backup”.</p>
+    <p class="aviso">Copie o texto acima e guarde (WhatsApp, e-mail, notas). É um retrato dos dados para recuperação manual via dashboard do Supabase.</p>
     <div class="acoes">
       <button class="btn" id="btnCopiar">📋 Copiar</button>
       <button class="btn sec" id="btnBaixar">⬇️ Baixar .json</button>
@@ -298,7 +319,6 @@ nav.bottom button.ativa .ic{transform:translateY(-1px)}
       <input type="text" id="planoMaps" class="campo" style="flex:1" placeholder="vazio = sem botão de mapa">
       <button class="btn sec" id="planoUsarTexto" type="button">🔎 Usar o texto</button>
     </div>
-    <p class="aviso" id="planoAvisoLocais" style="display:none">⚠️ Este plano tem vários locais (📍) definidos no arquivo de dados. Se você alterar a busca acima, eles serão substituídos por uma busca única.</p>
     <div class="acoes">
       <button class="btn" id="planoSalvar">💾 Salvar</button>
       <button class="btn perigo" id="planoExcluir">🗑️ Excluir</button>
@@ -307,53 +327,41 @@ nav.bottom button.ativa .ic{transform:translateY(-1px)}
   </div>
 </div>
 
-<input type="file" id="fileDados" accept=".json,.xml,application/json,text/xml" hidden>
-<input type="file" id="fileBackup" accept=".json,application/json" hidden>
+<div id="telaLogin">
+  <div class="caixa">
+    <div style="font-size:2.2rem">✈️🇬🇧🇫🇷🇧🇪🇩🇪🇵🇹</div>
+    <h2>EuroTrip da Família Buscapé</h2>
+    <p>Entre com o e-mail e a senha cadastrados para acessar o roteiro da viagem.</p>
+    <input type="email" id="loginEmail" class="campo" placeholder="E-mail" autocomplete="username">
+    <input type="password" id="loginSenha" class="campo" placeholder="Senha" autocomplete="current-password">
+    <div id="loginErro"></div>
+    <button class="btn" id="btnEntrar" style="width:100%">Entrar 🔓</button>
+    <p id="loginConfigAviso" style="display:none;color:var(--warn);font-weight:600"></p>
+  </div>
+</div>
 
 <script>
 "use strict";
 /* =========================================================
-   ===== DADOS DA VIAGEM ===================================
+   EUROTRIP — SHELL PÚBLICO (sem dados pessoais)
    =========================================================
-   Este arquivo é publicado "em branco": NENHUM dado pessoal
-   ou de roteiro fica aqui. Os dados reais vivem no arquivo
-   local dados-viagem.xml (que NÃO deve ir para o GitHub) e
-   são carregados uma única vez pelo botão "Importar dados"
-   (tela inicial ou aba SOS); depois ficam persistidos no
-   localStorage do aparelho.
+   Os dados vivem numa base única no Supabase (tabelas viagem,
+   planos e desafios — ver setup-supabase.sql). Este arquivo
+   contém apenas o código: login por e-mail/senha (Auth),
+   leitura cache-first (localStorage) e escrita direta via
+   REST (PostgREST), protegidas por RLS.
+   A anon key abaixo NÃO é segredo: a segurança vem do RLS,
+   que só libera leitura/escrita para os e-mails autorizados. */
 
-   Estrutura esperada do XML (resumo — veja dados-viagem.xml):
-   <viagem versao inicio fim>
-     <familia><membro nome tipo idade emoji voucherSeguro
-                      passaporte validadePassaporte/></familia>
-     <seguro><nome/><plano/><telefones><telefone pais tipo>…</...>
-     <hospedagens><hospedagem cidade><nome/><endereco/>
-                  <periodo inicio fim/>…</hospedagem></...>
-     <transportes><transporte tipo dataPartida horaPartida
-                  dataChegada horaChegada><de/><para/><detalhes/></...>
-     <cidades><cidade nome dias destaque><pontoFocal/>
-              <atracoes><item data?>…</item></atracoes>
-              <segredos/><armadilhas/><dicas/></cidade></...>
-     <desafios><crianca nome idade><desafio id>texto</desafio></...>
-   Datas SEMPRE como texto "AAAA-MM-DD"; a conversão para Date
-   é feita por pd(), que usa componentes locais (nunca UTC). */
-const TRIP_DATA = {
-  versao: 1,
-  inicio: "",
-  fim: "",
-  familia: [],
-  seguro: { nome:"", plano:"", telefones: [] },
-  hospedagens: [],
-  transportes: [],
-  cidades: [],
-  desafios: []
-};
-/* ===== FIM DOS DADOS DA VIAGEM =========================== */
+/* ===== CONFIGURAÇÃO — PREENCHA APÓS CRIAR O PROJETO ===== */
+const SUPABASE_URL = "COLE_AQUI_A_URL_DO_PROJETO";      // ex.: https://abcdefgh.supabase.co
+const SUPABASE_ANON_KEY = "COLE_AQUI_A_ANON_KEY";
+/* ======================================================== */
 
 /* ============ CHAVES DE ARMAZENAMENTO ============ */
-const K_TEMA = "viagem2026_tema_v1";
-const K_DESAFIOS = "viagem2026_desafios_v1";
-const K_DADOS = "viagem2026_dados_v1";
+const K_TEMA  = "viagem2026_tema_v1";
+const K_CACHE = "viagem2026_cache_v2";   // {viagem, planos, desafios, atualizadoEm}
+const K_SESS  = "viagem2026_sessao_v1";  // {access_token, refresh_token, expira, email}
 
 /* ============ UTILITÁRIOS ============ */
 // Regra de ouro: NUNCA new Date("AAAA-MM-DD") (seria UTC). Sempre componentes locais.
@@ -366,8 +374,12 @@ const DIAS_SEM = ["domingo","segunda","terça","quarta","quinta","sexta","sábad
 function isoData(d){ return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); }
 function fmtData(d){ return String(d.getDate()).padStart(2,"0")+"/"+String(d.getMonth()+1).padStart(2,"0"); }
 function fmtDataFull(d){ return fmtData(d)+"/"+d.getFullYear(); }
-function esc(s){ return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
-
+function esc(s){ return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
+function uuid(){
+  return (crypto && crypto.randomUUID) ? crypto.randomUUID()
+    : "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g,c=>{
+        const r=Math.random()*16|0; return (c==="x"?r:(r&0x3|0x8)).toString(16); });
+}
 function lerLS(chave){
   try{ const v = localStorage.getItem(chave); return v ? JSON.parse(v) : null; }catch(e){ return null; }
 }
@@ -375,32 +387,115 @@ function gravarLS(chave,val){
   try{ localStorage.setItem(chave, JSON.stringify(val)); return true; }
   catch(e){ console.warn("localStorage indisponível", e); return false; }
 }
+function configOk(){ return SUPABASE_URL.startsWith("https://") && SUPABASE_ANON_KEY.length > 20; }
 
 /* ============ ESTADO ============ */
-let TRIP = lerLS(K_DADOS) || TRIP_DATA;      // fonte de dados (via importação)
-garantirIds(TRIP);
-let desafios = null;                          // [{id, crianca, texto, done, custom}]
+let cache = lerLS(K_CACHE);      // {viagem:{id,nome,inicio,fim,dados}, planos:[], desafios:[], atualizadoEm}
+let sess  = lerLS(K_SESS);       // sessão do Supabase Auth
+let online = true;               // resultado da última operação de rede
 let filtroHome = "hoje";
 let cidadeAtiva = 0;
 let viewAtiva = "home";
 
-function temDados(){ return !!(TRIP && TRIP.inicio && TRIP.fim); }
+function temDados(){ return !!(cache && cache.viagem); }
+function dadosV(){ return temDados() ? (cache.viagem.dados||{}) : {}; }
+const MSG_SEM_CONEXAO = "Sem conexão — alteração não salva. Tente novamente.";
 
-function carregarDesafios(){
-  const salvo = lerLS(K_DESAFIOS);
-  if (salvo && Array.isArray(salvo.items)) { desafios = salvo.items; return; }
-  desafios = (TRIP.desafios||[]).map(d => ({ id:d.id, crianca:d.crianca, texto:d.texto, done:false, custom:false }));
-  salvarDesafios();
+/* ============ SUPABASE: AUTH ============ */
+async function authPost(caminho, corpo, comBearer){
+  const h = { "apikey": SUPABASE_ANON_KEY, "Content-Type": "application/json" };
+  if(comBearer && sess) h["Authorization"] = "Bearer " + sess.access_token;
+  const r = await fetch(SUPABASE_URL + "/auth/v1" + caminho, {
+    method:"POST", headers:h, body: corpo!==undefined ? JSON.stringify(corpo) : undefined });
+  return r;
 }
-function salvarDesafios(){ gravarLS(K_DESAFIOS, { items: desafios, v:1 }); }
+function guardarSessao(tk){
+  sess = { access_token: tk.access_token, refresh_token: tk.refresh_token,
+           expira: Date.now() + (tk.expires_in||3600)*1000,
+           email: (tk.user && tk.user.email) || (sess && sess.email) || "" };
+  gravarLS(K_SESS, sess);
+}
+async function login(email, senha){
+  const r = await authPost("/token?grant_type=password", { email, password: senha });
+  if(!r.ok){
+    let msg = "Falha no login.";
+    try{ const j = await r.json(); if(j.error_description||j.msg) msg = j.error_description||j.msg; }catch(e){}
+    throw new Error(msg);
+  }
+  guardarSessao(await r.json());
+}
+// true = sessão renovada/válida; false = credenciais inválidas (relogar); throw = sem rede
+async function garantirSessao(){
+  if(!sess) return false;
+  if(Date.now() < sess.expira - 60000) return true;
+  const r = await authPost("/token?grant_type=refresh_token", { refresh_token: sess.refresh_token });
+  if(r.ok){ guardarSessao(await r.json()); return true; }
+  if(r.status===400 || r.status===401){ encerrarSessaoLocal(); return false; }
+  throw new Error("rede");
+}
+function encerrarSessaoLocal(){
+  sess = null; cache = null;
+  try{ localStorage.removeItem(K_SESS); localStorage.removeItem(K_CACHE); }catch(e){}
+  renderTudo(); atualizarTelaLogin();
+}
+async function sair(){
+  try{ await authPost("/logout", undefined, true); }catch(e){}
+  encerrarSessaoLocal();
+}
 
-// Ao importar novos dados: acrescenta desafios inéditos, preserva progresso e os cadastrados no app
-function mesclarDesafiosDoTrip(){
-  const ids = new Set(desafios.map(d=>d.id));
-  (TRIP.desafios||[]).forEach(d=>{
-    if(!ids.has(d.id)) desafios.push({ id:d.id, crianca:d.crianca, texto:d.texto, done:false, custom:false });
-  });
-  salvarDesafios();
+/* ============ SUPABASE: REST (PostgREST) ============ */
+async function sb(metodo, caminho, corpo, prefer){
+  const okSess = await garantirSessao();
+  if(!okSess){ const e = new Error("Sessão expirada"); e.auth = true; throw e; }
+  const h = { "apikey": SUPABASE_ANON_KEY, "Authorization": "Bearer " + sess.access_token };
+  if(corpo!==undefined) h["Content-Type"] = "application/json";
+  if(prefer) h["Prefer"] = prefer;
+  const r = await fetch(SUPABASE_URL + "/rest/v1/" + caminho, {
+    method: metodo, headers: h, body: corpo!==undefined ? JSON.stringify(corpo) : undefined });
+  if(r.status===401){ const e = new Error("Não autorizado"); e.auth = true; throw e; }
+  if(!r.ok){ const t = await r.text(); throw new Error("Supabase "+r.status+": "+t.slice(0,200)); }
+  if(r.status===204) return null;
+  const texto = await r.text();
+  return texto ? JSON.parse(texto) : null;
+}
+// 1 retentativa automática em falha de rede; depois propaga o erro
+async function sbRetry(metodo, caminho, corpo, prefer){
+  try{ return await sb(metodo, caminho, corpo, prefer); }
+  catch(e){
+    if(e.auth) throw e;
+    await new Promise(res=>setTimeout(res, 800));
+    return await sb(metodo, caminho, corpo, prefer);
+  }
+}
+
+/* ============ SINCRONIZAÇÃO (leitura cache-first) ============ */
+let sincronizando = false;
+async function sincronizar(){
+  if(!configOk() || !sess || sincronizando) return;
+  sincronizando = true;
+  try{
+    const [vs, ps, ds] = await Promise.all([
+      sb("GET","viagem?select=*&order=atualizado_em.desc&limit=1"),
+      sb("GET","planos?select=*&order=data.asc,ordem.asc"),
+      sb("GET","desafios?select=*&order=id.asc")
+    ]);
+    if(vs && vs.length){
+      cache = { viagem: vs[0], planos: ps||[], desafios: ds||[], atualizadoEm: new Date().toISOString() };
+      gravarLS(K_CACHE, cache);
+    }
+    setOnline(true);
+    renderTudo();
+  }catch(e){
+    if(e.auth){ atualizarTelaLogin(); }
+    else setOnline(false);
+  }finally{ sincronizando = false; }
+}
+function setOnline(v){
+  online = v;
+  const dot = document.getElementById("statusDot");
+  dot.textContent = v ? "🟢" : "🔴";
+  dot.title = v ? "Conectado — alterações sincronizam nos dois celulares"
+               : "Sem conexão — somente leitura (dados do cache)";
 }
 
 /* ============ TEMA ============ */
@@ -423,31 +518,56 @@ function iniciarTema(){
   });
 }
 
-/* ============ CABEÇALHO DINÂMICO ============ */
+/* ============ CABEÇALHO / LOGIN ============ */
 function renderSubHeader(){
   const el = document.getElementById("subHeader");
-  if(!temDados()){ el.textContent = "Importe os dados da viagem para começar"; return; }
-  const nomes = (TRIP.familia||[]).map(m=>m.nome).join(" · ");
-  const per = fmtData(pd(TRIP.inicio))+" a "+fmtData(pd(TRIP.fim));
+  if(!temDados()){ el.textContent = sess ? "Sincronizando com a base…" : "Faça login para carregar a viagem"; return; }
+  const d = dadosV();
+  const nomes = (d.familia||[]).map(m=>m.nome).join(" · ");
+  const per = fmtData(pd(cache.viagem.inicio))+" a "+fmtData(pd(cache.viagem.fim));
   el.textContent = nomes ? nomes+" — "+per : per;
 }
+function atualizarTelaLogin(){
+  const tela = document.getElementById("telaLogin");
+  tela.classList.toggle("visivel", !sess);
+  const avisoCfg = document.getElementById("loginConfigAviso");
+  if(!configOk()){
+    avisoCfg.style.display = "block";
+    avisoCfg.textContent = "⚠️ Configure SUPABASE_URL e SUPABASE_ANON_KEY no index.html antes de usar.";
+  } else avisoCfg.style.display = "none";
+}
+function ligarLogin(){
+  const fazerLogin = async ()=>{
+    const email = document.getElementById("loginEmail").value.trim();
+    const senha = document.getElementById("loginSenha").value;
+    const erro = document.getElementById("loginErro");
+    erro.textContent = "";
+    if(!configOk()){ erro.textContent = "App não configurado (URL/anon key)."; return; }
+    if(!email || !senha){ erro.textContent = "Informe e-mail e senha."; return; }
+    document.getElementById("btnEntrar").textContent = "Entrando…";
+    try{
+      await login(email, senha);
+      atualizarTelaLogin();
+      renderTudo();
+      await sincronizar();
+    }catch(e){
+      erro.textContent = /invalid/i.test(e.message) ? "E-mail ou senha inválidos." : e.message;
+    }finally{
+      document.getElementById("btnEntrar").textContent = "Entrar 🔓";
+    }
+  };
+  document.getElementById("btnEntrar").addEventListener("click", fazerLogin);
+  document.getElementById("loginSenha").addEventListener("keydown", ev=>{ if(ev.key==="Enter") fazerLogin(); });
+}
 
-/* ============ ESTADO VAZIO (sem dados importados) ============ */
+/* ============ ESTADO VAZIO ============ */
 function cardVazio(){
-  return '<div class="card contagem"><div style="font-size:2rem">🗂️➡️📱</div>'
-    + '<div class="num" style="font-size:1.4rem">Nenhum dado carregado</div>'
-    + '<p>Este app vem em branco. Selecione o arquivo <b>dados-viagem.xml</b> '
-    + '(ou .json) que acompanha o app para carregar o roteiro, contatos e desafios. '
-    + 'Os dados ficam salvos só neste aparelho.</p>'
-    + '<div class="acoes" style="justify-content:center">'
-    + '<button class="btn btnImportarDados">📂 Importar dados</button></div></div>';
-}
-function ligarBotoesImportar(raiz){
-  raiz.querySelectorAll(".btnImportarDados").forEach(b=>
-    b.addEventListener("click",()=>document.getElementById("fileDados").click()));
+  return '<div class="card contagem"><div style="font-size:2rem">📡</div>'
+    + '<div class="num" style="font-size:1.3rem">'+(online?"Sincronizando…":"Aguardando conexão")+'</div>'
+    + '<p>Os dados da viagem são carregados da base única na primeira conexão e ficam disponíveis offline depois disso.</p></div>';
 }
 
-// Pernas/conexões de um transporte, com tempo de troca em destaque
+/* ============ HELPERS DE RENderização ============ */
 function htmlPernas(pernas){
   if(!pernas || !pernas.length) return "";
   let html = '<div style="margin-top:8px;font-weight:700;">🧭 Trechos da viagem</div>';
@@ -464,117 +584,77 @@ function htmlPernas(pernas){
   });
   return html;
 }
-
-// Um botão 📍 por local; se o item tem só maps (sem <local>), um botão único com rótulo padrão
-function botoesMaps(locais, maps, rotulo){
-  const lista = (locais && locais.length) ? locais : (maps ? [{nome:rotulo, maps:maps}] : []);
-  if(!lista.length) return "";
+function botoesMaps(maps, rotulo){
+  if(!maps) return "";
   return '<div style="margin-top:6px;display:flex;flex-wrap:wrap;gap:6px;">'
-    + lista.map(l=>'<button class="btn-maps" data-maps="'+esc(l.maps)+'">📍 '+esc(l.nome)+'</button>').join("")
-    + '</div>';
+    + '<button class="btn-maps" data-maps="'+esc(maps)+'">📍 '+esc(rotulo||"Abrir no Maps")+'</button></div>';
+}
+function toggleAcc(head){
+  const card = head.closest(".acc");
+  if(!card) return;
+  const abrir = !card.classList.contains("aberto");
+  const grupo = card.parentElement;
+  if(grupo) [...grupo.children].forEach(c=>{ if(c!==card && c.classList) c.classList.remove("aberto"); });
+  card.classList.toggle("aberto", abrir);
+}
+function toggleCardDetalhe(id){
+  const el = document.getElementById(id);
+  if(el){
+    const oculto = el.style.display === "none" || el.style.display === "";
+    el.style.display = oculto ? "block" : "none";
+  }
+}
+function abrirMaps(query){
+  if(!query) return;
+  window.open("https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(query), "_blank");
 }
 
-/* ============ PLANOS DO DIA (edição no app) ============ */
-// Ids internos para localizar cada plano; planosExtras = planos criados no app
-function novoId(prefixo){ return prefixo + Date.now().toString(36) + Math.random().toString(36).slice(2,8); }
-function garantirIds(t){
-  if(!Array.isArray(t.planosExtras)) t.planosExtras = [];
-  for(const c of t.cidades||[]) for(const lista of ["atracoes","segredos","armadilhas","dicas"])
-    for(const it of c[lista]||[]) if(!it.id) it.id = novoId("p");
-  for(const it of t.planosExtras) if(!it.id) it.id = novoId("x");
+/* ============ PLANOS (tabela planos) ============ */
+function planosDoDia(iso){
+  return (cache ? cache.planos : []).filter(p=>p.data===iso).sort((a,b)=>(a.ordem-b.ordem)||String(a.id).localeCompare(b.id));
 }
-function acharPlano(pid){
-  for(const c of TRIP.cidades||[]) for(const lista of ["atracoes","segredos","armadilhas","dicas"]){
-    const arr = c[lista]||[];
-    const it = arr.find(x=>x.id===pid);
-    if(it) return { item: it, arr, cidade: c.nome };
-  }
-  const it = (TRIP.planosExtras||[]).find(x=>x.id===pid);
-  if(it) return { item: it, arr: TRIP.planosExtras, cidade: "" };
-  return null;
+function acharPlano(id){ return (cache ? cache.planos : []).find(p=>p.id===id) || null; }
+// hospedagem do dia → nome da cidade do guia (ex.: "Antuérpia" → "Antuérpia e Brugge")
+function cidadeGuiaDoDia(iso){
+  const d = pd(iso), dd = dadosV();
+  let cidadeHosp = null;
+  for(const h of dd.hospedagens||[]) for(const per of h.periodos||[])
+    if(pd(per.inicio) <= d && d < pd(per.fim)) cidadeHosp = h.cidade;
+  if(!cidadeHosp) return "";
+  const c = (dd.cidades||[]).find(x=>x.nome===cidadeHosp || x.nome.includes(cidadeHosp) || cidadeHosp.includes(x.nome));
+  return c ? c.nome : cidadeHosp;
 }
-
-let planoEditando = null; // {novo:true} ou {pid, mapsOriginal, cidade}
-function abrirEditorPlano(pid, dataISO){
-  let item = null, cidade = "";
-  if(pid){
-    const ref = acharPlano(pid);
-    if(!ref) return;
-    item = ref.item; cidade = ref.cidade;
-  }
-  planoEditando = pid ? { pid, cidade } : { novo:true };
-  document.getElementById("planoTitulo").textContent = pid ? "✏️ Editar plano" : "➕ Novo plano";
-  document.getElementById("planoTexto").value = item ? item.texto : "";
-  document.getElementById("planoData").value = item ? (item.data||"") : (dataISO||"");
-  const mapsAtual = item ? (item.maps||"") : "";
-  document.getElementById("planoMaps").value = mapsAtual;
-  planoEditando.mapsOriginal = mapsAtual;
-  document.getElementById("planoAvisoLocais").style.display = (item && item.locais && item.locais.length) ? "block" : "none";
-  document.getElementById("planoExcluir").style.display = pid ? "inline-flex" : "none";
-  document.getElementById("modalPlano").classList.add("aberto");
+async function salvarPlanoRemoto(p){
+  p.alterado_em = new Date().toISOString();
+  await sbRetry("POST","planos?on_conflict=id", [p], "resolution=merge-duplicates,return=representation");
+  const i = cache.planos.findIndex(x=>x.id===p.id);
+  if(i>=0) cache.planos[i] = p; else cache.planos.push(p);
+  gravarLS(K_CACHE, cache);
 }
-function cidadeSugestao(){
-  if(planoEditando && planoEditando.cidade) return planoEditando.cidade.split(" e ")[0];
-  const dv = document.getElementById("planoData").value;
-  if(dv){ const c = cidadeDoDia(pd(dv)); if(c) return c; }
-  return "";
+async function excluirPlanoRemoto(id){
+  await sbRetry("DELETE","planos?id=eq."+encodeURIComponent(id));
+  cache.planos = cache.planos.filter(p=>p.id!==id);
+  gravarLS(K_CACHE, cache);
 }
-function salvarPlano(){
-  const texto = document.getElementById("planoTexto").value.trim();
-  const data = document.getElementById("planoData").value.trim();
-  const maps = document.getElementById("planoMaps").value.trim();
-  if(!texto){ alert("Descreva o plano."); return; }
-  if(planoEditando.novo){
-    // busca padrão atrelada ao conteúdo: texto + cidade do dia
-    const cid = cidadeSugestao();
-    TRIP.planosExtras.push({ id:"x"+Date.now(), texto, data,
-      maps: maps || (texto + (cid ? ", "+cid : "")) });
-  } else {
-    const ref = acharPlano(planoEditando.pid);
-    if(ref){
-      ref.item.texto = texto;
-      if(data) ref.item.data = data; else delete ref.item.data;
-      if(maps !== planoEditando.mapsOriginal){
-        if(maps){ ref.item.maps = maps; delete ref.item.locais; }
-        else { delete ref.item.maps; delete ref.item.locais; }
-      }
-    }
-  }
-  gravarLS(K_DADOS, TRIP);
-  fecharEditorPlano();
-  renderTudo();
-}
-function excluirPlano(){
-  const ref = acharPlano(planoEditando.pid);
-  if(ref && confirm('Excluir o plano "'+ref.item.texto+'"?')){
-    ref.arr.splice(ref.arr.indexOf(ref.item), 1);
-    gravarLS(K_DADOS, TRIP);
-    fecharEditorPlano();
-    renderTudo();
-  }
-}
-function fecharEditorPlano(){ document.getElementById("modalPlano").classList.remove("aberto"); planoEditando = null; }
-function ligarEditorPlano(){
-  document.getElementById("planoSalvar").addEventListener("click", salvarPlano);
-  document.getElementById("planoExcluir").addEventListener("click", excluirPlano);
-  document.getElementById("planoCancelar").addEventListener("click", fecharEditorPlano);
-  document.getElementById("modalPlano").addEventListener("click",(ev)=>{ if(ev.target.id==="modalPlano") fecharEditorPlano(); });
-  document.getElementById("planoUsarTexto").addEventListener("click",()=>{
-    const t = document.getElementById("planoTexto").value.trim();
-    const cid = cidadeSugestao();
-    document.getElementById("planoMaps").value = t ? t + (cid ? ", "+cid : "") : "";
-  });
-  document.addEventListener("click",(ev)=>{
-    const e1 = ev.target.closest("[data-editar-plano]");
-    if(e1){ ev.stopPropagation(); abrirEditorPlano(e1.getAttribute("data-editar-plano")); return; }
-    const e2 = ev.target.closest("[data-add-plano]");
-    if(e2){ ev.stopPropagation(); abrirEditorPlano(null, e2.getAttribute("data-add-plano")); }
-  });
+// Reordenação: renumera o dia inteiro (poucas linhas) e faz um upsert em lote
+async function moverOrdem(id, dir){
+  const p = acharPlano(id); if(!p) return;
+  const dia = planosDoDia(p.data);
+  const i = dia.findIndex(x=>x.id===id), j = i + dir;
+  if(j<0 || j>=dia.length) return;
+  [dia[i], dia[j]] = [dia[j], dia[i]];
+  const agora = new Date().toISOString();
+  dia.forEach((x,k)=>{ x.ordem = k; x.alterado_em = agora; });
+  try{
+    await sbRetry("POST","planos?on_conflict=id", dia, "resolution=merge-duplicates,return=representation");
+    gravarLS(K_CACHE, cache);
+    setOnline(true); renderTudo();
+  }catch(e){ if(e.auth) atualizarTelaLogin(); else { setOnline(false); alert(MSG_SEM_CONEXAO); } }
 }
 
-/* ============ CRONOGRAMA (derivado dos dados) ============ */
+/* ============ CRONOGRAMA (derivado de viagem.dados + planos) ============ */
 function cidadeDoDia(d){
-  for(const h of TRIP.hospedagens||[]){
+  for(const h of dadosV().hospedagens||[]){
     for(const p of h.periodos||[]){
       if(pd(p.inicio) <= d && d < pd(p.fim)) return h.cidade;
     }
@@ -582,16 +662,15 @@ function cidadeDoDia(d){
   return null;
 }
 function construirCronograma(){
-  const ini = pd(TRIP.inicio), fim = pd(TRIP.fim);
+  const dd = dadosV();
+  const ini = pd(cache.viagem.inicio), fim = pd(cache.viagem.fim);
   const dias = [];
   for(let d = ini; d <= fim; d = addDias(d,1)){
     const eventos = [];
-    // check-out
-    for(const h of TRIP.hospedagens||[]) for(const p of h.periodos||[])
+    for(const h of dd.hospedagens||[]) for(const p of h.periodos||[])
       if(mesmaData(pd(p.fim), d))
         eventos.push({ ord:1, hr:"", ic:"🧳", tx:"Check-out — "+h.nome+" ("+h.cidade+")" });
-    // transportes partindo ou chegando hoje
-    for(const t of TRIP.transportes||[]){
+    for(const t of dd.transportes||[]){
       if(mesmaData(pd(t.dataPartida), d)){
         const chegaOutroDia = t.dataChegada && !mesmaData(pd(t.dataChegada), d);
         eventos.push({ ord:2, hr:t.horaPartida,
@@ -603,28 +682,16 @@ function construirCronograma(){
         eventos.push({ ord:2, hr:t.horaChegada, ic:"🛬", tx:"Chegada em "+t.para+" às "+t.horaChegada, sub:t.detalhes });
       }
     }
-    // check-in
-    for(const h of TRIP.hospedagens||[]) for(const p of h.periodos||[])
+    for(const h of dd.hospedagens||[]) for(const p of h.periodos||[])
       if(mesmaData(pd(p.inicio), d))
-        eventos.push({ ord:3, hr:"", ic:"🏨", tx:"Check-in — "+h.nome+" ("+h.cidade+")", sub:h.endereco, mapsQuery: h.mapsQuery });
-    // atividades com data marcada (qualquer lista das cidades)
-    for(const c of TRIP.cidades||[]){
-      for(const lista of ["atracoes","segredos","armadilhas","dicas"]){
-        for(const item of c[lista]||[]){
-          if(item.data && mesmaData(pd(item.data), d))
-            eventos.push({ ord:4, hr:"", ic: lista==="segredos" ? "💎" : "🎯", tx:item.texto, mapsQuery:item.maps, locais:item.locais, pid:item.id });
-        }
-      }
-    }
-    // planos criados no próprio app
-    for(const p of TRIP.planosExtras||[]){
-      if(p.data && mesmaData(pd(p.data), d))
-        eventos.push({ ord:4, hr:"", ic:"📝", tx:p.texto, mapsQuery:p.maps, pid:p.id });
-    }
+        eventos.push({ ord:3, hr:"", ic:"🏨", tx:"Check-in — "+h.nome+" ("+h.cidade+")", sub:h.endereco, mapsQuery:h.mapsQuery });
+    // planos do dia (tabela planos — editáveis)
+    for(const p of planosDoDia(isoData(d)))
+      eventos.push({ ord:4, hr:"", ic:"🎯", tx:p.texto, mapsQuery:p.maps, pid:p.id });
     eventos.sort((a,b)=> a.ord-b.ord || String(a.hr).localeCompare(String(b.hr)));
     let cidade = cidadeDoDia(d);
     if(!cidade){
-      const saida = (TRIP.hospedagens||[]).find(h=>(h.periodos||[]).some(p=>mesmaData(pd(p.fim),d)));
+      const saida = (dd.hospedagens||[]).find(h=>(h.periodos||[]).some(p=>mesmaData(pd(p.fim),d)));
       cidade = saida ? "Saída de "+saida.cidade : "Em trânsito";
     }
     dias.push({ data:d, cidade, eventos });
@@ -633,20 +700,21 @@ function construirCronograma(){
 }
 
 function cardDia(dia, ehHoje, aberto){
+  const nPlanos = dia.eventos.filter(e=>e.pid).length;
   let html = '<div class="card dia acc'+(ehHoje?' hoje':'')+((ehHoje||aberto)?' aberto':'')+'">';
   html += '<div class="acc-head" onclick="toggleAcc(this)">';
   html += '<div class="cab"><div class="data">'+fmtData(dia.data)+' <small>'+DIAS_SEM[dia.data.getDay()]+'</small></div>';
   html += '<span class="badge'+(ehHoje?' hoje':'')+'">'+(ehHoje?'HOJE · ':'')+esc(dia.cidade)+'</span></div>';
   html += '<span class="seta">▶</span></div>';
   html += '<div class="acc-body">';
-  
+
   if(dia.eventos.length===0){
-    html += '<div class="evento"><span class="ic">🌤️</span><div class="tx">Dia livre — veja ideias no Guia de '+esc(dia.cidade)+'</div></div>';
+    html += '<div class="evento"><span class="ic">🌤️</span><div class="tx">Dia livre — use ➕ para planejar</div></div>';
   } else {
     dia.eventos.forEach((e, idx)=>{
       const detId = "det-"+dia.data.getTime()+"-"+idx;
       const temDetalhes = e.pnr || e.assentos || e.aviso || (e.pernas && e.pernas.length);
-      
+
       html += '<div class="evento" style="flex-direction:column;gap:4px;">';
       html += '<div style="display:flex;gap:10px;width:100%;align-items:flex-start;">';
       html += '<span class="ic">'+e.ic+'</span>';
@@ -655,17 +723,18 @@ function cardDia(dia, ehHoje, aberto){
       html += (e.hr ? '<span class="hr">'+esc(e.hr)+' · </span>' : '') + esc(e.tx);
       if(temDetalhes) html += ' <small style="color:var(--accent);font-weight:700;">[+ info]</small>';
       html += '</div>';
-      
       if(e.sub) html += '<div class="mini">'+esc(e.sub)+'</div>';
-      
-      // Botão do Google Maps se houver endereço/local
-      html += botoesMaps(e.locais, e.mapsQuery, "Abrir no Maps");
-      
+      html += botoesMaps(e.mapsQuery, "Abrir no Maps");
       html += '</div>';
-      if(e.pid) html += '<button class="acao" data-editar-plano="'+esc(e.pid)+'" aria-label="Editar plano">✏️</button>';
-      html += '</div>'; // fecha flex e div
-      
-      // Gaveta Expansível de Segundo Nível
+      if(e.pid){
+        if(nPlanos>1){
+          html += '<button class="acao mini-seta" data-subir="'+esc(e.pid)+'" aria-label="Mover para cima">▲</button>';
+          html += '<button class="acao mini-seta" data-descer="'+esc(e.pid)+'" aria-label="Mover para baixo">▼</button>';
+        }
+        html += '<button class="acao" data-editar-plano="'+esc(e.pid)+'" aria-label="Editar plano">✏️</button>';
+      }
+      html += '</div>'; // fecha linha flex
+
       if(temDetalhes){
         html += '<div id="'+detId+'" style="display:none;margin-left:36px;margin-top:4px;padding:8px 10px;background:var(--card2);border-radius:10px;border:1px solid var(--border);font-size:.8rem;" class="mini">';
         if(e.pnr) html += '<div>🎫 <b>PNR / Reserva:</b> <code style="background:var(--accent-soft);color:var(--accent);padding:2px 6px;border-radius:6px;font-weight:bold;">'+esc(e.pnr)+'</code></div>';
@@ -674,7 +743,6 @@ function cardDia(dia, ehHoje, aberto){
         html += htmlPernas(e.pernas);
         html += '</div>';
       }
-      
       html += '</div>'; // fecha evento
     });
   }
@@ -684,14 +752,10 @@ function cardDia(dia, ehHoje, aberto){
 
 function renderHome(){
   const cont = document.getElementById("listaDias");
-  if(!temDados()){
-    cont.innerHTML = cardVazio();
-    ligarBotoesImportar(cont);
-    return;
-  }
+  if(!temDados()){ cont.innerHTML = cardVazio(); return; }
   const dias = construirCronograma();
   const hoje = hojeLocal();
-  const ini = pd(TRIP.inicio), fim = pd(TRIP.fim);
+  const ini = pd(cache.viagem.inicio), fim = pd(cache.viagem.fim);
   let html = "";
 
   if(filtroHome === "hoje"){
@@ -739,7 +803,7 @@ function renderFiltrosHome(){
 const EMOJI_CIDADE = { "Londres":"🇬🇧","Paris":"🇫🇷","Antuérpia e Brugge":"🇧🇪","Düsseldorf":"🇩🇪","Lisboa":"🇵🇹" };
 function renderPillsCidades(){
   const el = document.getElementById("pillsCidades");
-  el.innerHTML = (TRIP.cidades||[]).map((c,i)=>
+  el.innerHTML = (dadosV().cidades||[]).map((c,i)=>
     '<button class="pill'+(i===cidadeAtiva?' ativa':'')+'" data-i="'+i+'">'+(EMOJI_CIDADE[c.nome]||"📍")+' '+esc(c.nome)+'</button>').join("");
   el.querySelectorAll("button").forEach(b=>b.addEventListener("click",()=>{ cidadeAtiva=+b.dataset.i; renderPillsCidades(); renderGuia(); }));
 }
@@ -753,59 +817,158 @@ function blocoLista(titulo, ic, itens, aberto){
   for(const it of itens){
     html += '<li><span>'+esc(it.texto)+'</span>'
       + (it.data ? '<span class="chip-data">'+fmtData(pd(it.data))+'</span>' : '')
-      + botoesMaps(it.locais, it.maps, "Maps") + '</li>';
+      + (it.maps ? '<button class="btn-maps" data-maps="'+esc(it.maps)+'">📍 Maps</button>' : '')
+      + (it.pid ? '<button class="acao" data-editar-plano="'+esc(it.pid)+'" aria-label="Editar plano" style="min-height:32px">✏️</button>' : '')
+      + '</li>';
   }
   return html + '</ul></div></div>';
 }
 function renderGuia(){
   const el = document.getElementById("guiaConteudo");
-  if(!temDados() || !(TRIP.cidades||[]).length){
-    el.innerHTML = cardVazio();
-    ligarBotoesImportar(el);
-    return;
-  }
-  const c = TRIP.cidades[Math.min(cidadeAtiva, TRIP.cidades.length-1)];
+  const cidades = dadosV().cidades||[];
+  if(!temDados() || !cidades.length){ el.innerHTML = cardVazio(); return; }
+  const c = cidades[Math.min(cidadeAtiva, cidades.length-1)];
   let html = '<div class="card"><h3>'+(EMOJI_CIDADE[c.nome]||"📍")+' '+esc(c.nome)
     + ' <span class="badge">'+c.dias+' dias</span></h3>'
     + '<p class="mini">📍 Base: '+esc(c.pontoFocal||"")+'</p></div>';
-  html += blocoLista("Roteiro &amp; Atrações","🎯",c.atracoes,true);
+  // Roteiro & Atrações vem da tabela planos (mesma fonte do cronograma)
+  const atracoes = (cache.planos||[]).filter(p=>p.cidade===c.nome)
+    .sort((a,b)=> a.data<b.data?-1:a.data>b.data?1:(a.ordem-b.ordem))
+    .map(p=>({ texto:p.texto, data:p.data, maps:p.maps, pid:p.id }));
+  html += blocoLista("Roteiro &amp; Atrações","🎯",atracoes,true);
   html += blocoLista("Segredos locais","💎",c.segredos,false);
   html += blocoLista("Armadilhas a evitar","⚠️",c.armadilhas,false);
   html += blocoLista("Informações úteis","💡",c.dicas,false);
   el.innerHTML = html;
 }
 
-/* ============ DESAFIOS ============ */
-function criancas(){
-  const fam = (TRIP.familia||[]).filter(m=>m.tipo==="crianca").map(m=>m.nome);
-  if(fam.length) return fam;
-  return [...new Set(desafios.map(d=>d.crianca))];
+/* ============ EDITOR DE PLANOS ============ */
+let planoEditando = null; // {novo:true, data} ou {id}
+function abrirEditorPlano(id, dataISO){
+  let p = null;
+  if(id){ p = acharPlano(id); if(!p) return; }
+  planoEditando = id ? { id } : { novo:true };
+  document.getElementById("planoTitulo").textContent = id ? "✏️ Editar plano" : "➕ Novo plano";
+  document.getElementById("planoTexto").value = p ? p.texto : "";
+  document.getElementById("planoData").value = p ? p.data : (dataISO||"");
+  document.getElementById("planoMaps").value = p ? (p.maps||"") : "";
+  document.getElementById("planoExcluir").style.display = id ? "inline-flex" : "none";
+  document.getElementById("modalPlano").classList.add("aberto");
 }
-function emojiKid(nome){
-  const m = (TRIP.familia||[]).find(x=>x.nome===nome);
-  return (m && m.emoji) ? m.emoji : "🧒";
+function cidadeSugestao(){
+  const dv = document.getElementById("planoData").value;
+  if(!dv) return "";
+  const nome = cidadeGuiaDoDia(dv);
+  return nome ? nome.split(" e ")[0] : "";
+}
+async function salvarPlano(){
+  const texto = document.getElementById("planoTexto").value.trim();
+  const data = document.getElementById("planoData").value.trim();
+  const maps = document.getElementById("planoMaps").value.trim();
+  if(!texto){ alert("Descreva o plano."); return; }
+  if(!data){ alert("Escolha o dia."); return; }
+  let p;
+  if(planoEditando.novo){
+    const cid = cidadeSugestao();
+    p = { id: uuid(), viagem_id: cache.viagem.id, data,
+          cidade: cidadeGuiaDoDia(data) || "", texto,
+          maps: maps || (texto + (cid ? ", "+cid : "")),
+          ordem: planosDoDia(data).length };
+  } else {
+    const atual = acharPlano(planoEditando.id);
+    if(!atual) return;
+    const mudouDia = atual.data !== data;
+    p = Object.assign({}, atual, { texto, data, maps,
+          cidade: mudouDia ? (cidadeGuiaDoDia(data) || atual.cidade) : atual.cidade,
+          ordem: mudouDia ? planosDoDia(data).length : atual.ordem });
+  }
+  try{
+    await salvarPlanoRemoto(p);
+    setOnline(true);
+    fecharEditorPlano();
+    renderTudo();
+  }catch(e){
+    if(e.auth) atualizarTelaLogin();
+    else { setOnline(false); alert(MSG_SEM_CONEXAO); }
+  }
+}
+async function excluirPlano(){
+  const p = acharPlano(planoEditando.id);
+  if(!p) return;
+  if(!confirm('Excluir o plano "'+p.texto+'"?')) return;
+  try{
+    await excluirPlanoRemoto(p.id);
+    setOnline(true);
+    fecharEditorPlano();
+    renderTudo();
+  }catch(e){
+    if(e.auth) atualizarTelaLogin();
+    else { setOnline(false); alert(MSG_SEM_CONEXAO); }
+  }
+}
+function fecharEditorPlano(){ document.getElementById("modalPlano").classList.remove("aberto"); planoEditando = null; }
+function ligarEditorPlano(){
+  document.getElementById("planoSalvar").addEventListener("click", salvarPlano);
+  document.getElementById("planoExcluir").addEventListener("click", excluirPlano);
+  document.getElementById("planoCancelar").addEventListener("click", fecharEditorPlano);
+  document.getElementById("modalPlano").addEventListener("click",(ev)=>{ if(ev.target.id==="modalPlano") fecharEditorPlano(); });
+  document.getElementById("planoUsarTexto").addEventListener("click",()=>{
+    const t = document.getElementById("planoTexto").value.trim();
+    const cid = cidadeSugestao();
+    document.getElementById("planoMaps").value = t ? t + (cid ? ", "+cid : "") : "";
+  });
+  document.addEventListener("click",(ev)=>{
+    const bMaps = ev.target.closest("[data-maps]");
+    if(bMaps){ ev.stopPropagation(); abrirMaps(bMaps.getAttribute("data-maps")); return; }
+    const bEd = ev.target.closest("[data-editar-plano]");
+    if(bEd){ ev.stopPropagation(); abrirEditorPlano(bEd.getAttribute("data-editar-plano")); return; }
+    const bAdd = ev.target.closest("[data-add-plano]");
+    if(bAdd){ ev.stopPropagation(); abrirEditorPlano(null, bAdd.getAttribute("data-add-plano")); return; }
+    const bUp = ev.target.closest("[data-subir]");
+    if(bUp){ ev.stopPropagation(); moverOrdem(bUp.getAttribute("data-subir"), -1); return; }
+    const bDown = ev.target.closest("[data-descer]");
+    if(bDown){ ev.stopPropagation(); moverOrdem(bDown.getAttribute("data-descer"), +1); }
+  });
 }
 
+/* ============ DESAFIOS (tabela desafios) ============ */
+function criancas(){
+  const fam = (dadosV().familia||[]).filter(m=>m.tipo==="crianca").map(m=>m.nome);
+  if(fam.length) return fam;
+  return [...new Set((cache?cache.desafios:[]).map(d=>d.crianca))];
+}
+function emojiKid(nome){
+  const m = (dadosV().familia||[]).find(x=>x.nome===nome);
+  return (m && m.emoji) ? m.emoji : "🧒";
+}
+async function salvarDesafioRemoto(d){
+  d.alterado_em = new Date().toISOString();
+  await sbRetry("POST","desafios?on_conflict=id", [d], "resolution=merge-duplicates,return=representation");
+  const i = cache.desafios.findIndex(x=>x.id===d.id);
+  if(i>=0) cache.desafios[i] = d; else cache.desafios.push(d);
+  gravarLS(K_CACHE, cache);
+}
+async function excluirDesafioRemoto(id){
+  await sbRetry("DELETE","desafios?id=eq."+encodeURIComponent(id));
+  cache.desafios = cache.desafios.filter(x=>x.id!==id);
+  gravarLS(K_CACHE, cache);
+}
 function renderDesafios(){
   const cont = document.getElementById("listaDesafios");
+  if(!temDados()){ cont.innerHTML = cardVazio(); return; }
   const kids = criancas();
-  if(!kids.length){
-    cont.innerHTML = cardVazio();
-    ligarBotoesImportar(cont);
-    return;
-  }
   let html = "";
   for(const kid of kids){
-    const itens = desafios.filter(d=>d.crianca===kid);
-    const feitos = itens.filter(d=>d.done).length;
+    const itens = cache.desafios.filter(d=>d.crianca===kid);
+    const feitos = itens.filter(d=>d.feito).length;
     const pct = itens.length ? Math.round(100*feitos/itens.length) : 0;
     html += '<div class="card"><h3>'+emojiKid(kid)+' '+esc(kid)
       + ' <span class="badge">'+feitos+' de '+itens.length+' concluídos</span></h3>'
       + '<div class="progresso"><div class="barra"><div style="width:'+pct+'%"></div></div></div>';
     if(!itens.length) html += '<p class="mini">Nenhum desafio ainda — cadastre acima! 🏆</p>';
     for(const d of itens){
-      html += '<div class="desafio'+(d.done?' feito':'')+'" data-id="'+esc(d.id)+'">'
-        + '<label><input type="checkbox" '+(d.done?'checked':'')+' data-acao="toggle"> '
+      html += '<div class="desafio'+(d.feito?' feito':'')+'" data-id="'+esc(d.id)+'">'
+        + '<label><input type="checkbox" '+(d.feito?'checked':'')+' data-acao="toggle"> '
         + '<span class="txt">'+esc(d.texto)+'</span></label>'
         + '<button class="acao" data-acao="editar" aria-label="Editar desafio">✏️</button>'
         + '<button class="acao" data-acao="excluir" aria-label="Excluir desafio">🗑️</button></div>';
@@ -816,57 +979,63 @@ function renderDesafios(){
 
   cont.querySelectorAll(".desafio").forEach(el=>{
     const id = el.dataset.id;
-    el.querySelector('[data-acao=toggle]').addEventListener("change",(ev)=>{
-      const d = desafios.find(x=>String(x.id)===id);
-      if(d){ d.done = ev.target.checked; salvarDesafios(); renderDesafios(); }
+    const achar = ()=> cache.desafios.find(x=>String(x.id)===id);
+    el.querySelector('[data-acao=toggle]').addEventListener("change", async (ev)=>{
+      const d = achar(); if(!d) return;
+      const novo = Object.assign({}, d, { feito: ev.target.checked });
+      try{ await salvarDesafioRemoto(novo); setOnline(true); renderDesafios(); }
+      catch(e){ if(e.auth) atualizarTelaLogin(); else { setOnline(false); alert(MSG_SEM_CONEXAO); renderDesafios(); } }
     });
-    el.querySelector('[data-acao=editar]').addEventListener("click",()=>{
-      const d = desafios.find(x=>String(x.id)===id);
-      if(!d) return;
+    el.querySelector('[data-acao=editar]').addEventListener("click", async ()=>{
+      const d = achar(); if(!d) return;
       const novo = prompt("Editar desafio:", d.texto);
-      if(novo && novo.trim()){ d.texto = novo.trim(); salvarDesafios(); renderDesafios(); }
+      if(!novo || !novo.trim()) return;
+      const alterado = Object.assign({}, d, { texto: novo.trim() });
+      try{ await salvarDesafioRemoto(alterado); setOnline(true); renderDesafios(); }
+      catch(e){ if(e.auth) atualizarTelaLogin(); else { setOnline(false); alert(MSG_SEM_CONEXAO); } }
     });
-    el.querySelector('[data-acao=excluir]').addEventListener("click",()=>{
-      const d = desafios.find(x=>String(x.id)===id);
-      if(!d) return;
-      if(confirm('Excluir o desafio "'+d.texto+'"?')){
-        desafios = desafios.filter(x=>String(x.id)!==id);
-        salvarDesafios(); renderDesafios();
-      }
+    el.querySelector('[data-acao=excluir]').addEventListener("click", async ()=>{
+      const d = achar(); if(!d) return;
+      if(!confirm('Excluir o desafio "'+d.texto+'"?')) return;
+      try{ await excluirDesafioRemoto(d.id); setOnline(true); renderDesafios(); }
+      catch(e){ if(e.auth) atualizarTelaLogin(); else { setOnline(false); alert(MSG_SEM_CONEXAO); } }
     });
   });
 }
-
 function renderSelectCriancas(){
   const sel = document.getElementById("novoKid");
   const kids = criancas();
   sel.innerHTML = kids.length
     ? kids.map(k=>'<option value="'+esc(k)+'">'+emojiKid(k)+' '+esc(k)+'</option>').join("")
-    : '<option value="">Importe os dados primeiro…</option>';
+    : '<option value="">Aguardando dados…</option>';
 }
 function iniciarFormDesafio(){
-  document.getElementById("formDesafio").addEventListener("submit",(ev)=>{
+  document.getElementById("formDesafio").addEventListener("submit", async (ev)=>{
     ev.preventDefault();
     const sel = document.getElementById("novoKid");
     const txt = document.getElementById("novoTexto").value.trim();
-    if(!sel.value){ alert("Importe os dados da viagem primeiro (tela inicial ou aba SOS)."); return; }
-    if(!txt) return;
-    desafios.push({ id:"c"+Date.now(), crianca:sel.value, texto:txt, done:false, custom:true });
-    salvarDesafios();
-    document.getElementById("novoTexto").value = "";
-    renderDesafios();
+    if(!sel.value || !txt) return;
+    const d = { id: "custom-"+Math.random().toString(36).slice(2,8),
+                viagem_id: cache.viagem.id, crianca: sel.value, texto: txt,
+                feito:false, personalizado:true };
+    try{
+      await salvarDesafioRemoto(d);
+      setOnline(true);
+      document.getElementById("novoTexto").value = "";
+      renderDesafios();
+    }catch(e){ if(e.auth) atualizarTelaLogin(); else { setOnline(false); alert(MSG_SEM_CONEXAO); } }
   });
 }
 
 /* ============ SOS & DOCUMENTOS ============ */
-// Card em sanfona da aba SOS: título clicável, corpo expansível
 function sosCard(titulo, aberto, corpo){
   return '<div class="card acc'+(aberto?' aberto':'')+'">'
     + '<div class="acc-head" onclick="toggleAcc(this)"><h3>'+titulo+'</h3><span class="seta">▶</span></div>'
     + '<div class="acc-body">'+corpo+'</div></div>';
 }
 function renderSOS(){
-  const s = TRIP.seguro||{};
+  const dd = dadosV();
+  const s = dd.seguro||{};
   let html = "";
 
   if(!temDados()) html += cardVazio();
@@ -887,10 +1056,10 @@ function renderSOS(){
     html += sosCard("📞 SOS — ligações gratuitas", true, corpo);
   }
 
-  if((TRIP.familia||[]).length){
-    const fimViagem = TRIP.fim ? pd(TRIP.fim) : null;
+  if((dd.familia||[]).length){
+    const fimViagem = cache.viagem.fim ? pd(cache.viagem.fim) : null;
     let corpo = "";
-    for(const m of TRIP.familia){
+    for(const m of dd.familia){
       let validade = "";
       if(m.validadePassaporte){
         validade = 'válido até '+fmtDataFull(pd(m.validadePassaporte));
@@ -906,26 +1075,27 @@ function renderSOS(){
     html += sosCard("🛂 Passaportes", false, corpo);
 
     corpo = "";
-    for(const m of TRIP.familia){
+    for(const m of dd.familia){
       corpo += '<div class="kv"><span>'+esc(m.nome)+(m.idade?(' ('+m.idade+')'):'')+'</span><b>'+esc(m.voucherSeguro||"—")+'</b></div>';
     }
     html += sosCard("🎫 Vouchers do seguro", false, corpo);
   }
 
-  if((TRIP.hospedagens||[]).length){
+  if((dd.hospedagens||[]).length){
     let corpo = "";
-    for(const h of TRIP.hospedagens){
+    for(const h of dd.hospedagens){
       const per = (h.periodos||[]).map(p=>fmtData(pd(p.inicio))+"–"+fmtData(pd(p.fim))).join(" e ");
       corpo += '<div class="kv" style="flex-direction:column;align-items:flex-start;gap:2px">'
         + '<b>'+esc(h.cidade)+' — '+esc(h.nome)+'</b>'
-        + '<span>'+esc(h.endereco||"")+'</span><span>🗓️ '+per+'</span></div>';
+        + '<span>'+esc(h.endereco||"")+'</span><span>🗓️ '+per+'</span>'
+        + botoesMaps(h.mapsQuery, "Abrir no Maps") + '</div>';
     }
     html += sosCard("🏨 Hospedagens", false, corpo);
   }
 
-  if((TRIP.transportes||[]).length){
+  if((dd.transportes||[]).length){
     let corpo = "";
-    for(const t of TRIP.transportes){
+    for(const t of dd.transportes){
       corpo += '<div class="kv" style="flex-direction:column;align-items:flex-start;gap:2px">'
         + '<b>'+(t.tipo==="voo"?"✈️":"🚆")+' '+fmtData(pd(t.dataPartida))+' · '+esc(t.de)+' → '+esc(t.para)+'</b>'
         + '<span>'+esc(t.horaPartida)+' – '+esc(t.horaChegada)
@@ -939,176 +1109,44 @@ function renderSOS(){
     html += sosCard("🎟️ Transportes comprados", false, corpo);
   }
 
-  html += sosCard("💾 Dados &amp; Backup", !temDados(),
-    '<p class="mini">Importe o arquivo .xml/.json com os dados da viagem, ou faça backup do progresso dos desafios (plano B se o navegador perder os dados).</p>'
+  html += sosCard("⚙️ Conta &amp; Backup", !temDados(),
+    '<div class="kv"><span>Conectado como</span><b>'+esc(sess?sess.email:"—")+'</b></div>'
+    + '<div class="kv"><span>Última sincronização</span><b>'+(cache&&cache.atualizadoEm?esc(new Date(cache.atualizadoEm).toLocaleString("pt-BR")):"—")+'</b></div>'
+    + '<p class="mini" style="margin-top:6px">O backup gera um retrato local dos dados (plano B). As alterações normais já ficam salvas na base única.</p>'
     + '<div class="acoes">'
-    + '<button class="btn sec btnImportarDados">📂 Importar dados</button>'
     + '<button class="btn" id="btnExportarBackup">⬆️ Exportar backup</button>'
-    + '<button class="btn sec" id="btnImportarBackup">⬇️ Importar backup</button>'
+    + '<button class="btn sec" id="btnSincronizar">🔄 Sincronizar agora</button>'
+    + '<button class="btn perigo" id="btnSair">🚪 Sair</button>'
     + '</div>');
 
   const cont = document.getElementById("sosConteudo");
   cont.innerHTML = html;
-  ligarBotoesImportar(cont);
-  document.getElementById("btnExportarBackup").addEventListener("click",exportarBackup);
-  document.getElementById("btnImportarBackup").addEventListener("click",()=>document.getElementById("fileBackup").click());
+  document.getElementById("btnExportarBackup").addEventListener("click", exportarBackup);
+  document.getElementById("btnSincronizar").addEventListener("click", ()=>sincronizar());
+  document.getElementById("btnSair").addEventListener("click", ()=>{ if(confirm("Sair da conta neste aparelho?")) sair(); });
 }
 
-/* ============ IMPORTAÇÃO DE DADOS (JSON / XML) ============ */
-function txtEl(parent, sel){ const e = parent.querySelector(sel); return e ? e.textContent.trim() : ""; }
-function itensDe(parent, sel){
-  const cont = parent.querySelector(sel);
-  if(!cont) return [];
-  return [...cont.querySelectorAll("item")].map(it=>{
-    const o = { texto: it.textContent.trim() };
-    if(it.getAttribute("data")) o.data = it.getAttribute("data");
-    if(it.getAttribute("maps")) o.maps = it.getAttribute("maps");
-    const locs = [...it.querySelectorAll("local")]
-      .map(l=>({ nome: l.getAttribute("nome")||"Maps", maps: l.getAttribute("maps")||"" }))
-      .filter(l=>l.maps);
-    if(locs.length) o.locais = locs;
-    return o;
-  });
-}
-function xmlParaTrip(texto){
-  const doc = new DOMParser().parseFromString(texto, "application/xml");
-  if(doc.querySelector("parsererror")) throw new Error("XML inválido (erro de sintaxe).");
-  const raiz = doc.querySelector("viagem");
-  if(!raiz) throw new Error("XML sem elemento raiz <viagem>.");
-  const trip = {
-    versao: Number(raiz.getAttribute("versao")) || 1,
-    inicio: raiz.getAttribute("inicio"),
-    fim: raiz.getAttribute("fim"),
-    familia: [...raiz.querySelectorAll("familia > membro")].map(m=>({
-      nome: m.getAttribute("nome"), tipo: m.getAttribute("tipo"),
-      idade: m.getAttribute("idade") ? Number(m.getAttribute("idade")) : undefined,
-      emoji: m.getAttribute("emoji") || "",
-      voucherSeguro: m.getAttribute("voucherSeguro") || "",
-      passaporte: m.getAttribute("passaporte") || "",
-      validadePassaporte: m.getAttribute("validadePassaporte") || ""
-    })),
-    seguro: {
-      nome: txtEl(raiz, "seguro > nome"),
-      plano: txtEl(raiz, "seguro > plano"),
-      telefones: [...raiz.querySelectorAll("seguro > telefones > telefone")].map(t=>({
-        pais: t.getAttribute("pais"), tipo: t.getAttribute("tipo"), numero: t.textContent.trim()
-      }))
-    },
-    hospedagens: [...raiz.querySelectorAll("hospedagens > hospedagem")].map(h=>({
-  cidade: h.getAttribute("cidade"),
-  nome: txtEl(h, "nome"), 
-  endereco: txtEl(h, "endereco"),
-  mapsQuery: txtEl(h, "mapsQuery") || txtEl(h, "endereco") || txtEl(h, "nome"),
-  periodos: [...h.querySelectorAll("periodo")].map(p=>({ inicio: p.getAttribute("inicio"), fim: p.getAttribute("fim") }))
-})),
-
-transportes: [...raiz.querySelectorAll("transportes > transporte")].map(t=>({
-  tipo: t.getAttribute("tipo"),
-  dataPartida: t.getAttribute("dataPartida"), horaPartida: t.getAttribute("horaPartida"),
-  dataChegada: t.getAttribute("dataChegada"), horaChegada: t.getAttribute("horaChegada"),
-  pnr: t.getAttribute("pnr") || txtEl(t, "pnr") || "",
-  assentos: t.getAttribute("assentos") || txtEl(t, "assentos") || "",
-  mapsPartida: txtEl(t, "mapsPartida"),
-  aviso: txtEl(t, "aviso"),
-  pernas: [...t.querySelectorAll("pernas > perna")].map(p=>({
-    de: p.getAttribute("de")||"", para: p.getAttribute("para")||"",
-    horaPartida: p.getAttribute("horaPartida")||"", horaChegada: p.getAttribute("horaChegada")||"",
-    servico: p.getAttribute("servico")||"", plataforma: p.getAttribute("plataforma")||"",
-    assentos: p.getAttribute("assentos")||"", conexao: p.getAttribute("conexao")||""
-  })),
-  de: txtEl(t,"de"), para: txtEl(t,"para"), detalhes: txtEl(t,"detalhes")
-})),
-    cidades: [...raiz.querySelectorAll("cidades > cidade")].map(c=>({
-      nome: c.getAttribute("nome"),
-      dias: Number(c.getAttribute("dias")) || 0,
-      destaque: c.getAttribute("destaque")==="true",
-      pontoFocal: txtEl(c,"pontoFocal"),
-      atracoes: itensDe(c,"atracoes"),
-      segredos: itensDe(c,"segredos"),
-      armadilhas: itensDe(c,"armadilhas"),
-      dicas: itensDe(c,"dicas")
-    })),
-    desafios: [...raiz.querySelectorAll("desafios > crianca")].flatMap(k=>
-      [...k.querySelectorAll("desafio")].map(d=>({
-        id: d.getAttribute("id") || ("x"+Math.random().toString(36).slice(2)),
-        crianca: k.getAttribute("nome"), texto: d.textContent.trim()
-      }))
-    )
-  };
-  return trip;
-}
-function validarTrip(t){
-  if(!t || !t.inicio || !t.fim || !Array.isArray(t.cidades)) throw new Error("Estrutura de dados incompleta (esperado: inicio, fim, cidades…).");
-  return t;
-}
-function aoImportarDados(texto){
-  const limpo = texto.replace(/^﻿/,"").trim();
-  let novo;
-  if(limpo.startsWith("<")) novo = xmlParaTrip(limpo);
-  else novo = JSON.parse(limpo);
-  validarTrip(novo);
-  novo.planosExtras = (TRIP && TRIP.planosExtras) || [];  // preserva planos criados no app
-  TRIP = novo;
-  garantirIds(TRIP);
-  gravarLS(K_DADOS, TRIP);
-  mesclarDesafiosDoTrip();
-  cidadeAtiva = 0;
-  renderTudo();
-  alert("Dados importados com sucesso! ✅");
-}
-
-/* ============ BACKUP (progresso + desafios) ============ */
+/* ============ BACKUP LOCAL (plano B) ============ */
 function exportarBackup(){
-  const payload = { app:"viagem2026", tipo:"backup", v:2, geradoEm:new Date().toISOString(),
-    desafios: desafios, dados: temDados() ? TRIP : null };
+  const payload = { app:"eurotrip2026", tipo:"backup-supabase", v:3,
+                    geradoEm:new Date().toISOString(), cache: cache };
   const json = JSON.stringify(payload, null, 2);
   const ta = document.getElementById("modalTexto");
   ta.value = json;
-  document.getElementById("modalTitulo").textContent = "⬆️ Backup dos desafios";
+  document.getElementById("modalTitulo").textContent = "⬆️ Backup dos dados";
   document.getElementById("modal").classList.add("aberto");
   document.getElementById("btnBaixar").onclick = ()=>{
     try{
       const blob = new Blob([json], {type:"application/json"});
       const a = document.createElement("a");
       a.href = URL.createObjectURL(blob);
-      a.download = "backup-viagem2026.json";
+      a.download = "backup-eurotrip2026.json";
       document.body.appendChild(a); a.click(); a.remove();
       setTimeout(()=>URL.revokeObjectURL(a.href), 5000);
     }catch(e){ alert("Download não suportado aqui — use o botão Copiar."); }
   };
 }
-function importarBackup(texto){
-  const dados = JSON.parse(texto.replace(/^﻿/,"").trim());
-  const items = Array.isArray(dados) ? dados : dados.desafios;
-  if(!Array.isArray(items)) throw new Error("Backup inválido: lista de desafios não encontrada.");
-  // Backups v2 incluem os dados da viagem (com edições de planos feitas no app)
-  if(dados && dados.dados){
-    validarTrip(dados.dados);
-    TRIP = dados.dados;
-    garantirIds(TRIP);
-    gravarLS(K_DADOS, TRIP);
-  }
-  desafios = items.map(d=>({ id:String(d.id), crianca:d.crianca, texto:d.texto, done:!!d.done, custom:!!d.custom }));
-  salvarDesafios();
-  renderTudo();
-  alert("Backup restaurado! ✅");
-}
-
-function ligarArquivos(){
-  document.getElementById("fileDados").addEventListener("change", function(){
-    const f = this.files[0]; this.value = "";
-    if(!f) return;
-    const r = new FileReader();
-    r.onload = ()=>{ try{ aoImportarDados(r.result); }catch(e){ alert("Falha ao importar dados: "+e.message); } };
-    r.readAsText(f, "UTF-8");
-  });
-  document.getElementById("fileBackup").addEventListener("change", function(){
-    const f = this.files[0]; this.value = "";
-    if(!f) return;
-    const r = new FileReader();
-    r.onload = ()=>{ try{ importarBackup(r.result); }catch(e){ alert("Falha ao importar backup: "+e.message); } };
-    r.readAsText(f, "UTF-8");
-  });
+function ligarModais(){
   document.getElementById("btnFechar").addEventListener("click",()=>document.getElementById("modal").classList.remove("aberto"));
   document.getElementById("modal").addEventListener("click",(ev)=>{ if(ev.target.id==="modal") ev.target.classList.remove("aberto"); });
   document.getElementById("btnCopiar").addEventListener("click",()=>{
@@ -1131,35 +1169,6 @@ function mostrarView(v){
 }
 function iniciarNav(){
   document.querySelectorAll("nav.bottom button").forEach(b=>b.addEventListener("click",()=>mostrarView(b.dataset.view)));
-  // Botões 📍 Maps por delegação: sobrevivem a re-renderizações e a nomes com apóstrofo
-  document.addEventListener("click",(ev)=>{
-    const b = ev.target.closest("[data-maps]");
-    if(b){ ev.stopPropagation(); abrirMaps(b.getAttribute("data-maps")); }
-  });
-}
-
-function abrirMaps(query){
-  if(!query) return;
-  const url = "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(query);
-  window.open(url, "_blank");
-}
-
-function toggleCardDetalhe(id){
-  const el = document.getElementById(id);
-  if(el){
-    const hidden = el.style.display === "none" || el.style.display === "";
-    el.style.display = hidden ? "block" : "none";
-  }
-}
-
-// Sanfona: abre o card tocado e fecha os irmãos do mesmo grupo
-function toggleAcc(head){
-  const card = head.closest(".acc");
-  if(!card) return;
-  const abrir = !card.classList.contains("aberto");
-  const grupo = card.parentElement;
-  if(grupo) [...grupo.children].forEach(c=>{ if(c!==card && c.classList) c.classList.remove("aberto"); });
-  card.classList.toggle("aberto", abrir);
 }
 
 /* ============ BOOT ============ */
@@ -1171,13 +1180,23 @@ function renderTudo(){
   renderSOS();
 }
 iniciarTema();
-carregarDesafios();
 iniciarNav();
 iniciarFormDesafio();
-ligarArquivos();
 ligarEditorPlano();
-renderTudo();
+ligarModais();
+ligarLogin();
+setOnline(navigator.onLine !== false);
+renderTudo();               // abre instantâneo com o cache local
+atualizarTelaLogin();
 mostrarView("home");
+if(sess) sincronizar();     // refetch em segundo plano
+window.addEventListener("online", ()=>{ if(sess) sincronizar(); });
+document.addEventListener("visibilitychange", ()=>{
+  if(document.visibilityState==="visible" && sess) sincronizar();
+});
+setInterval(()=>{
+  if(document.visibilityState==="visible" && sess) sincronizar();
+}, 60000);
 </script>
 </body>
 </html>

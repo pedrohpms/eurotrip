@@ -1,78 +1,69 @@
-# ✈️ App Viagem Europa 2026
+# ✈️ EuroTrip 2026 — app de viagem com base única no Supabase
 
-App offline de apoio a uma viagem em família pela Europa. É um único arquivo (`index.html`) que funciona 100% sem internet — cronograma dia a dia, guia das cidades, desafios das crianças e informações de emergência (SOS).
+App de apoio à viagem da família pela Europa (22/07–15/08/2026), publicado em **https://pedrohpms.github.io/eurotrip**. O repositório contém **apenas o shell** (`index.html`, sem nenhum dado pessoal). Os dados vivem numa **base única no Supabase**, acessível só pelos 2 adultos mediante login — e ficam **espelhados nos 2 celulares**: uma edição feita num aparelho aparece no outro em até ~60 s (ou ao reabrir/focar o app).
 
-> **Importante:** o `index.html` vai **"em branco"** — nenhum dado pessoal ou de roteiro fica no código, para que ele possa ser publicado no GitHub. Todos os dados (família, passaportes, vouchers, hotéis, bilhetes, roteiro e desafios) vivem **apenas** no arquivo local `dados-viagem.xml`, que é carregado no app pelo botão **Importar dados**.
+## 🧱 Arquitetura
+
+| Peça | Onde | O que guarda |
+|---|---|---|
+| `index.html` | GitHub Pages (público) | Só código: login, leitura cache-first, escrita direta via REST |
+| Tabela `viagem` | Supabase | JSONB com o que quase não muda: família, seguro, hospedagens, transportes/pernas, textos das cidades |
+| Tabela `planos` | Supabase | Uma linha por plano do dia (data, cidade, texto, busca do Maps, ordem) — editável no app |
+| Tabela `desafios` | Supabase | Desafios das crianças (semente + personalizados) e progresso |
+| `localStorage` | Cada celular | Cache da última leitura (leitura offline) + sessão do login |
+| `setup-supabase.sql` | **Só local — NUNCA no GitHub** | Criação das tabelas, RLS e seed com os dados pessoais |
+
+- **Leitura (cache-first):** o app abre na hora com o cache e refaz a leitura completa em segundo plano — ao abrir, ao voltar o foco, ao evento `online` e a cada ~60 s.
+- **Escrita (direta, exige conexão):** cada edição faz upsert/delete imediato no Supabase (1 retentativa automática). Sem conexão, o app avisa "Sem conexão — alteração não salva" e **não finge sucesso**. Sem fila offline, por decisão de projeto.
+- **Concorrência:** last-write-wins por linha (2 usuários, dezenas de linhas — suficiente).
+- **Indicador:** 🟢 conectado / 🔴 sem conexão (somente leitura) no topo.
+- **Segurança:** anon key é pública por design; a proteção é o **RLS** — toda leitura/escrita exige usuário autenticado **e** e-mail na lista fixa (função `eh_autorizado()` no SQL). Signups públicos desativados.
+
+## 🛠️ Setup (fazer uma vez)
+
+1. **Criar o projeto** em [supabase.com](https://supabase.com) → New project. Região: **Europa** (ex.: Frankfurt `eu-central-1` ou Londres `eu-west-2`), para menor latência durante a viagem.
+2. **Editar o `setup-supabase.sql`** (local): trocar os 2 e-mails de `eh_autorizado()` pelos e-mails reais do casal.
+3. **Rodar o SQL**: dashboard → SQL Editor → colar o arquivo inteiro → Run. Isso cria as 3 tabelas, liga o RLS e faz o seed com os dados da viagem.
+4. **Criar os 2 usuários**: Authentication → Users → Add user (e-mail + senha, os MESMOS e-mails do passo 2, marcar "Auto confirm").
+5. **Desativar signups públicos**: Authentication → Sign In / Providers → desligar "Allow new users to sign up".
+6. **Configurar o app**: em Project Settings → API, copiar a **Project URL** e a **anon/publishable key** para as constantes `SUPABASE_URL` e `SUPABASE_ANON_KEY` no topo do `<script>` do `index.html`; commitar e publicar (GitHub Pages).
+7. **Testar nos 2 celulares**: abrir https://pedrohpms.github.io/eurotrip, fazer login, conferir os dados. Dica: menu ⋮ → "Adicionar à tela inicial".
+
+**Free tier:** projetos gratuitos são **pausados após ~7 dias sem atividade** de banco; o uso diário na viagem evita isso. Se pausar depois da viagem, basta Restore no dashboard (dados preservados). Detalhes: [Project Pausing](https://supabase.com/docs/guides/platform/free-project-pausing).
+
+## ✍️ Edição dos planos do dia
+
+- Cada plano no cronograma tem **✏️** (editar texto, mover para outra data, mudar a busca do Maps) e, quando o dia tem mais de um plano, **▲▼** para reordenar.
+- **➕ Adicionar plano** no rodapé de cada dia. Se a busca do Maps ficar vazia, o app usa o texto + a cidade do dia; o botão "🔎 Usar o texto" faz o mesmo no editor.
+- Excluir pede confirmação.
+- A aba **Guia** lista o "Roteiro & Atrações" direto da tabela `planos` (mesma fonte do cronograma — sem duplicação). Segredos, armadilhas e dicas continuam no JSONB (somente leitura nesta versão).
+- Transportes, hospedagens, seguro e passaportes são somente leitura no app; para ajustar, edite `viagem.dados` no dashboard (Table Editor) — a Fase 2 (pós-viagem) trará edição completa e cadastro de novas viagens.
+
+## ✅ Teste de aceitação
+
+1. Editar um plano no celular A → aparece no B em até ~60 s (ou ao reabrir/focar o app no B).
+2. Mover um plano para outra data no A → reflete no cronograma e no Guia do B.
+3. Marcar desafio e criar desafio novo no B → aparece no A.
+4. **Modo avião:** o app abre normalmente com os dados do cache e indicador 🔴; tentar editar exibe "Sem conexão — alteração não salva. Tente novamente." sem quebrar nem fingir sucesso.
+5. Excluir um plano no A → some do B no próximo refetch.
+6. **RLS:** `curl 'https://SEU-PROJETO.supabase.co/rest/v1/planos?select=*' -H "apikey: ANON_KEY" -H "Authorization: Bearer ANON_KEY"` **sem login** deve retornar `[]` (nenhuma linha) — a anon key não lê nada.
+7. SOS → Conta & Backup → **Sair** → o app volta para a tela de login (e limpa o cache local).
 
 ## 🔒 GitHub — o que pode e o que não pode subir
 
-| Arquivo | Pode ir para o GitHub? |
+| Arquivo | Pode? |
 |---|---|
-| `index.html` | ✅ Sim — não contém nenhum dado pessoal |
-| `README.md` | ✅ Sim |
-| `dados-viagem.xml` | ❌ **NUNCA** — contém passaportes, vouchers e endereços |
+| `index.html`, `README.md`, `manifest.json`, ícones | ✅ (a URL e a anon key do Supabase podem ser públicas — o RLS protege) |
+| `setup-supabase.sql` | ❌ **NUNCA** — contém passaportes, vouchers, endereços e reservas |
+| `dados-viagem.xml` (legado) | ❌ **NUNCA** — mesmos dados pessoais |
+| `backup-eurotrip2026*.json` | ❌ |
 
-Se for criar o repositório, adicione um `.gitignore` com a linha:
+O `.gitignore` já cobre todos os proibidos.
 
-```
-dados-viagem.xml
-```
+## 💾 Backup (plano B)
 
-## 📱 Instalação no celular (Android / Chrome)
+SOS → Conta & Backup → **Exportar backup** gera um JSON com o retrato atual (viagem + planos + desafios) para copiar/baixar. Restauração, se um dia for preciso, é manual via dashboard do Supabase — as alterações do dia a dia já ficam salvas na base.
 
-1. Copie **os dois arquivos** — `index.html` e `dados-viagem.xml` — para o celular, por WhatsApp, e-mail, cabo USB ou pelo app do OneDrive (use "Salvar no dispositivo"). Recomendado: pasta **Downloads** do armazenamento interno.
-2. Abra o app **Arquivos** (ou "Files"), localize o `index.html` e toque nele.
-3. Se perguntar com qual app abrir, escolha **Chrome**.
-4. O app abre vazio, com o aviso "Nenhum dado carregado". Toque em **📂 Importar dados** e selecione o `dados-viagem.xml`. Isso é feito **uma única vez** — os dados ficam salvos no aparelho.
-5. Pronto! Dica: no Chrome, toque em ⋮ → **Adicionar à tela inicial** para criar um atalho com cara de aplicativo.
+## 🗂️ Legado
 
-> **Importante:** abra sempre pelo **mesmo caminho/arquivo**. O progresso dos desafios fica salvo no navegador vinculado àquele arquivo — se abrir por outro caminho (ou reenviar o arquivo), o progresso aparece zerado.
-
-## ✅ Teste rápido após instalar (com os dados já importados)
-
-1. Ative o **modo avião** e recarregue a página — tudo deve continuar funcionando (o app não usa internet e os dados importados ficam no aparelho).
-2. Na aba **🏆 Desafios**, marque um desafio e cadastre um novo.
-3. Feche o Chrome por completo (dispense-o das apps recentes), reabra o arquivo e confira que o progresso e o novo desafio continuam lá.
-4. Se **não** persistirem (pode acontecer quando o Android abre o arquivo via `content://`), use o plano B: na aba **🆘 SOS → Dados & Backup**, toque em **Exportar backup**, copie o texto para as Notas/WhatsApp e restaure depois com **Importar backup**. Ou mova o `index.html` para o armazenamento interno e abra sempre por lá.
-
-## 🗂️ Arquivos
-
-| Arquivo | Para que serve |
-|---|---|
-| `index.html` | O app "em branco" — a casca pública, sem dados |
-| `dados-viagem.xml` | **Todos os dados da viagem** — obrigatório importar no primeiro uso |
-| `README.md` | Este guia |
-
-## ✏️ Como atualizar os dados da viagem
-
-Edite o `dados-viagem.xml` num editor de texto, envie-o ao celular e importe de novo em **🆘 SOS → Dados & Backup → Importar dados**. O progresso dos desafios é preservado (a mesclagem é feita pelo `id` de cada desafio); os desafios cadastrados pelo app também são mantidos.
-
-Regras do XML:
-
-- Mantenha a estrutura da raiz `<viagem>` (familia, seguro, hospedagens, transportes, cidades, desafios) e datas no formato `AAAA-MM-DD`.
-- **Passaportes:** preencha em cada `<membro>` os atributos `passaporte="NÚMERO"` e `validadePassaporte="AAAA-MM-DD"`. Eles aparecem no card **🛂 Passaportes** da aba SOS — com alerta automático se a validade vencer a menos de 6 meses do fim da viagem (exigência comum na imigração).
-- **Reservas:** em cada `<transporte>`, o atributo `pnr="CÓDIGO"` guarda o localizador/código de reserva (TAP, Eurostar, DB…) e `<assentos>` o vagão/assentos — ambos aparecem na gaveta "[+ info]" do cronograma e no card Transportes da aba SOS. `<mapsPartida>` (transportes) e `<mapsQuery>` (hospedagens) criam o botão "📍 Abrir no Maps"; `<aviso>` mostra alertas de horário em destaque.
-- **Conexões / pernas da viagem:** transportes com trocas usam `<pernas>` com uma `<perna>` por trecho. Atributos (todos opcionais): `de`, `para`, `horaPartida`, `horaChegada`, `servico` (ex.: "ICE 14", "TAP TP0058"), `plataforma`, `assentos` (do trecho) e `conexao` (tempo/instrução da troca — aparece em destaque ⚠️ amarelo antes do trecho). Os trechos são listados numerados na gaveta "[+ info]" e no card Transportes do SOS.
-- Itens de cidade com atributo `data="AAAA-MM-DD"` aparecem também no cronograma do dia; sem o atributo, ficam só no guia da cidade.
-- **Localização das atrações — um plano por lugar:** cada `<item>` representa **um** lugar, com sua `data` e sua busca `maps="consulta do Google Maps"`. Vários itens na mesma data viram vários planos naquele dia, cada um com o próprio botão "📍" e o próprio ✏️ de edição. (O formato legado `<local nome="..." maps="..."/>` dentro de um item ainda é aceito, mas prefira itens separados.)
-- O atributo opcional `emoji` em `<membro>` personaliza o ícone nos desafios e passaportes.
-
-## ✍️ Editar os planos de cada dia (no próprio app)
-
-Cada card de dia no cronograma tem um **✏️** ao lado de cada plano e um botão **➕ Adicionar plano** no rodapé. O editor permite mudar o texto, mover o plano para outro dia e definir a **busca do Maps**:
-
-- O botão **🔎 Usar o texto** preenche a busca com o texto do plano + a cidade do dia — assim a busca acompanha o que você editou.
-- Em planos novos, se a busca ficar vazia, o app usa automaticamente o texto + cidade.
-- Se o plano tinha vários locais (📍) vindos do XML, alterar a busca os substitui por uma busca única (o app avisa antes).
-
-As edições ficam salvas **no aparelho** (localStorage) e entram no **Exportar backup** (junto com os desafios). Atenção: **Importar dados** (XML) substitui os planos do roteiro — edições feitas no app sobre itens do XML são perdidas; apenas os planos **criados** no app (➕) são preservados. Antes de reimportar o XML, exporte um backup.
-
-## 🧭 Uso rápido
-
-- **🏠 Cronograma** — filtros "Hoje" (com contagem regressiva antes do embarque), "Próximos Dias" e "Ver Tudo".
-- **🗺️ Guia** — abas por cidade: roteiro, segredos locais, armadilhas a evitar e dicas de transporte.
-- **🏆 Desafios** — gincana da Olívia e do Lucas, com barra de progresso e cadastro de novos desafios.
-- **🆘 SOS** — telefones do seguro (tocáveis), vouchers, endereços das hospedagens, bilhetes e backup.
-- **🌙/☀️** — botão no topo alterna tema claro/escuro (a escolha fica salva).
-
-Boa viagem! 🇬🇧🇫🇷🇧🇪🇩🇪🇵🇹
+O fluxo antigo (importação de `dados-viagem.xml` por aparelho) foi substituído pela base única. O XML permanece na pasta apenas como referência histórica dos dados.
